@@ -13,7 +13,7 @@ An image file for landmark detection
 
 This program requires the google-cloud-vision Python library, which can be installed using pip:
 
-> pip install google-cloud-vision
+```pip install google-cloud-vision```
 
 # Usage
 
