@@ -5,9 +5,9 @@ This program allows the user to detect landmarks in an image using the Google Cl
 
 Before running the program, the user needs to have:
 
-*A valid Google Cloud API key
-*Google Cloud credentials file
-*An image file for landmark detection
+* A valid Google Cloud API key
+* Google Cloud credentials file
+* An image file for landmark detection
     
 # Installation
 
