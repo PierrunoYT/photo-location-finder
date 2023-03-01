@@ -17,7 +17,7 @@ This program requires the google-cloud-vision Python library, which can be insta
 
 # Usage
 
-To use the program, simply navigate in your directory where the file is located and then run the photolocationfinder.py in your command prompt. The program will prompt the user to enter the image path, API key, and credentials.
+To use the program, open command prompt and simply navigate in your directory where the file is located with cd C:\Users\Name\Downloads and then run the photolocationfinder.py in your command prompt. The program will prompt the user to enter the image path, API key, and credentials.
 
 # License
 
