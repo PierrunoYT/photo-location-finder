@@ -1,0 +1,5 @@
+{
+   "google_cloud_api_key": "YOUR_API_KEY",
+   "google_application_credentials_file_path": "YOUR_CREDENTIALS_FILE_PATH",
+   "image_directory_path": "YOUR_IMAGE_DIRECTORY_PATH",
+}
