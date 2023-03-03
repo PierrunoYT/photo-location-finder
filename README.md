@@ -15,7 +15,7 @@ Before running the program, the user needs to have:
 
 Clone the repository into your local machine.
 
-```git clone https://github.com/your_username/image-recog.git```
+```git clone https://github.com/PierrunoYT/photo-location-finder```
 
 Download Google Cloud Vision API Client Library [https://cloud.google.com/vision/docs/libraries?hl=de#client-libraries-install-python] for Python using pip:
 
