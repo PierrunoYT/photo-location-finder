@@ -28,12 +28,6 @@ Install dependencies listed in requirements.txt by running:
 Set up a Google Cloud Platform account by following the instructions given in official [documentation](https://cloud.google.com/vision/docs/before-you-begin?hl=de)
 
 Follow the instructions mentioned on this page to obtain an API key, create a project and enable billing feature.
-
- {
-     "google_cloud_api_key": "API Key",
-     "google_application_credentials_file_path": "./google-creds.json",
-     "image_directory_path": "./images"
-  }
   
 Update the values in the JSON configuration file that store the API key, credentials file path, and other parameters matching your own GCP account details.
 Store images you want to analyse in the directory mentioned in JSON file.
