@@ -25,7 +25,7 @@ Install dependencies listed in requirements.txt by running:
 
 ```pip install -r requirements.txt```
 
-Set up a Google Cloud Platform account by following the instructions given in official [documentation](https://cloud.google.com/vision/docs/before-you-begin?hl=de]
+Set up a Google Cloud Platform account by following the instructions given in official [documentation](https://cloud.google.com/vision/docs/before-you-begin?hl=de)
 
 Follow the instructions mentioned on this page to obtain an API key, create a project and enable billing feature.
 
