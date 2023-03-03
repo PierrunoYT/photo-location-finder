@@ -30,7 +30,7 @@ Set up a Google Cloud Platform account by following the instructions given in of
 Follow the instructions mentioned on this page to obtain an API key, create a project and enable billing feature.
 
  {
-     "google_cloud_api_key": "AIzaSyAc97pD-Yrixrkx2ZDWV6KdHsUo2TjA2r8",
+     "google_cloud_api_key": "API Key",
      "google_application_credentials_file_path": "./google-creds.json",
      "image_directory_path": "./images"
   }
