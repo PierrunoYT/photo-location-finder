@@ -13,24 +13,29 @@ Before running the program, the user needs to have:
     
 # Installation
 
-Clone the repository into your local machine.
+Clone the repository into your local machine using the following command:
 
 ```git clone https://github.com/PierrunoYT/photo-location-finder```
 
-Download Google [Cloud Vision API Client Library](https://cloud.google.com/vision/docs/libraries?hl=de#client-libraries-install-python) and aiohttp for Python using pip:
+Download Google [Cloud Vision API Client Library](https://cloud.google.com/vision/docs/libraries?hl=de#client-libraries-install-python) and the other package for Python using pip:
 
 ```pip install aiohttp google-cloud-vision```
+
+This will install the aiohttp and google-cloud-vision packages which are required for the project.
 
 Install dependencies listed in requirements.txt by running:
 
 ```pip install -r requirements.txt```
 
+This command will install all the required dependencies mentioned in the requirements.txt file.
+
 Set up a Google Cloud Platform account by following the instructions given in official [documentation](https://cloud.google.com/vision/docs/before-you-begin?hl=de)
 
 Follow the instructions mentioned on this page to obtain an API key, create a project and enable billing feature.
   
-Update the values in the JSON configuration file that store the API key, credentials file path, and other parameters matching your own GCP account details.
-Store images you want to analyse in the directory mentioned in JSON file.
+Update the values in the JSON configuration file (config.json) that store the API key, credentials file path, and other parameters matching your own GCP account details.
+
+Store images you want to analyze in the directory mentioned in the JSON file.
 
 # Usage
 
