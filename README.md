@@ -39,11 +39,17 @@ Store images you want to analyze in the directory mentioned in the JSON file.
 
 # Usage
 
-To use the program, open command prompt and simply navigate in your directory where the file is located with cd C:\Users\Name\Downloads and then run the photolocationfinder.py in your command prompt. The program will prompt the user to enter the config.json file path. 
+Open your terminal or command prompt and navigate to the directory where you cloned the repository using the cd command. 
 
-Follow the prompt that appears to enter the path to your JSON configuration file when prompted.
+Once you are in the project directory, run the following command to start the program:
 
-Wait for the process to complete, then check for the output file 'result.json', which has the detected landmarks, labels and web entities.
+```python photolocationfinder.py
+
+The program will ask you to provide the name of the image file that you want to analyze. Enter the name of the file (including the file extension like .jpg, .png, etc.) and press enter.
+
+The program will then use the Google Cloud Vision API to analyze the image and extract information such as labels, landmarks, and location data.
+
+After analyzing the image, the program will display the results on the console.
 
 # License
 
