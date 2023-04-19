@@ -17,9 +17,9 @@ Clone the repository into your local machine.
 
 ```git clone https://github.com/PierrunoYT/photo-location-finder```
 
-Download Google [Cloud Vision API Client Library](https://cloud.google.com/vision/docs/libraries?hl=de#client-libraries-install-python) for Python using pip:
+Download Google [Cloud Vision API Client Library](https://cloud.google.com/vision/docs/libraries?hl=de#client-libraries-install-python) and aiohttp for Python using pip:
 
-```pip install google-cloud-vision```
+```pip install aiohttp google-cloud-vision```
 
 Install dependencies listed in requirements.txt by running:
 
