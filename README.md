@@ -43,7 +43,7 @@ Open your terminal or command prompt and navigate to the directory where you clo
 
 Once you are in the project directory, run the following command to start the program:
 
-```python photolocationfinder.py
+```python photolocationfinder.py```
 
 The program will ask you to provide the name of the image file that you want to analyze. Enter the name of the file (including the file extension like .jpg, .png, etc.) and press enter.
 
