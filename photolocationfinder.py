@@ -1,6 +1,5 @@
 import os
 import json
-import asyncio
 from pathlib import Path
 
 import aiohttp
@@ -8,26 +7,7 @@ from google.cloud import vision_v1
 from google.cloud.vision_v1.types import Feature
 
 
-def read_config(config_path):
-    """Reads configuration data from file."""
-    config_file = Path(config_path)
-    if not config_file.exists():
-        raise FileNotFoundError(f"Configuration file '{config_path}' not found.")
-
-    try:
-        with config_file.open('r') as f:
-            config_data = json.load(f)
-            api_key = config_data['google_cloud_api_key']
-            cred_path = config_data.get('google_application_credentials_file_path')
-            image_dir = config_data.get('image_directory_path', '.')
-            prompt_for_confirmation = config_data.get('prompt_for_confirmation', False)
-
-        return api_key, cred_path, image_dir, prompt_for_confirmation
-    except json.JSONDecodeError as e:
-        raise ValueError(f"Invalid configuration file format: {e}")
-
-
-async def process_image(image_path, client, api_key):
+async def process_image(image_path: str, client: vision_v1.ImageAnnotatorClient, api_key: str):
     """Processes a single image using the given client."""
     try:
         with open(image_path, 'rb') as image_file:
@@ -52,10 +32,12 @@ async def process_image(image_path, client, api_key):
         landmarks = response.landmark_annotations
         if landmarks:
             for landmark in landmarks:
-                result_data["landmarks"].append({"name": landmark.description,
-                                                 "latitude": landmark.locations[0].lat_lng.latitude,
-                                                 "longitude": landmark.locations[0].lat_lng.longitude,
-                                                 "confidence": landmark.score})
+                result_data["landmarks"].append({
+                    "name": landmark.description,
+                    "latitude": landmark.locations[0].lat_lng.latitude,
+                    "longitude": landmark.locations[0].lat_lng.longitude,
+                    "confidence": landmark.score
+                })
         else:
             # If no landmarks were detected, try reverse geocoding based on object labels
             object_labels = [label.description.lower() for label in response.label_annotations[:3]]
@@ -77,12 +59,12 @@ async def process_image(image_path, client, api_key):
         return result_data
 
     except FileNotFoundError as f:
-        print(f"[IO ERROR][Image '{image_path}']: {f}")
+        raise Exception(f"[IO ERROR][Image '{image_path}']: {f}") from f
     except Exception as e:
-        print(f"[PROCESSING ERROR][Image '{image_path}']: {e}")
-        return {}
+        raise Exception(f"[PROCESSING ERROR][Image '{image_path}']: {e}")
 
-async def get_location_from_google_maps_api(object_labels, api_key):
+
+async def get_location_from_google_maps_api(object_labels: list[str], api_key: str):
     """Uses Google Maps API to get the approximate location of the landmark based on its appearance."""
     query = " ".join(object_labels)
     url = f"https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input={query}&inputtype=textquery&fields=geometry&key={api_key}"
@@ -90,13 +72,13 @@ async def get_location_from_google_maps_api(object_labels, api_key):
         async with session.get(url) as response:
             if response.ok:
                 data = await response.json()
-                if data["candidates"]:
+                if data.get("candidates"):
                     location = data["candidates"][0]["geometry"]["location"]
                     return location
-    return {}
+    return None
 
 
-def get_files_by_extension(directory, extensions):
+def get_files_by_extension(directory: str, extensions: list[str]):
     """Returns a list of files in directory that match one or more extensions."""
     files = []
     for ext in extensions:
@@ -104,16 +86,9 @@ def get_files_by_extension(directory, extensions):
     return files
 
 
-def main():
-    """
-    A function that processes images in a given directory and extracts landmark,
-    label and web entity information using Google Cloud Vision API. The result is
-    dumped into a JSON file in pretty print format.
-    """
-    config_path = 'config.json'
-    api_key, cred_path, image_dir, prompt_for_confirmation = read_config(config_path)
-
+async def detect_objects_in_images(api_key: str, cred_path: str, image_dir: str, prompt_for_confirmation: bool = False):
     os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = cred_path
+
     client = vision_v1.ImageAnnotatorClient()
 
     image_files = get_files_by_extension(image_dir, ["png", "jpg", "jpeg"])
@@ -134,8 +109,8 @@ def main():
     result_data = []
     # Process each image using asyncio tasks
     tasks = [asyncio.create_task(process_image(str(img_f), client, api_key)) for img_f in image_files]
-    results = asyncio.run(asyncio.gather(*tasks))
-    result_data = [data for data in results if data != {}]
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+    result_data = [data for data in results if isinstance(data, dict)]
 
     # Write the result data to a JSON file in pretty print format
     result_file = Path('result.json')
@@ -143,7 +118,3 @@ def main():
         json.dump(result_data, f, indent=4)
 
     print(f"Detection completed. Results saved to '{result_file.absolute()}'.")
-
-
-if __name__ == '__main__':
-    main()
