@@ -10,6 +10,7 @@ Before running the program, the user needs to have:
 * A valid Google Cloud API key
 * Google Cloud credentials file
 * A Directory with Images for landmark detection
+* All required libraries and packages
     
 # Installation
 
