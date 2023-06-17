@@ -34,7 +34,7 @@ If you don't have Python 3.7 or later installed, you can download it from the of
 
 5. Set up the authentication credentials for Google Cloud Vision API by creating a service account and storing the private key JSON file in a secure location. Follow the instructions provided in the [Google Cloud Vision Official Documentation](https://cloud.google.com/vision/docs/before-you-begin)
 
-After setting up the credentials, create a new file named config.json in the root directory of the project. Copy the contents of config.sample.json into config.json, and replace the YOUR_API_KEY_HERE placeholder with your actual Google Maps API key, and the PATH_TO_YOUR_CREDENTIALS_FILE placeholder with the path to the private key JSON file you created earlier. Update other parameters in the configuration file if necessary.
+Open the config.json and replace the YOUR_API_KEY_HERE placeholder with your actual Google Maps API key, and the PATH_TO_YOUR_CREDENTIALS_FILE placeholder with the path to the private key JSON file you created earlier. Update other parameters in the configuration file if necessary.
 
 5. Store the images you want to analyze in the directory mentioned in the image_dir parameter specified in the config.json file.
 
