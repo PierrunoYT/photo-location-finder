@@ -14,30 +14,35 @@ Before running the program, the user needs to have:
     
 # Installation
 
-1. Clone the repository onto your local machine using Git clone command or download the zip file from GitHub:
+1. To clone the repository onto your local machine, open a terminal or command prompt and enter the following command:
 
 ```git clone https://github.com/PierrunoYT/photo-location-finder```
 
-2. Make sure you have Python 3.7 or later installed on your local machine. You can check this by running python --version in your terminal or command prompt.
+Alternatively, you can download the zip file from GitHub by clicking on the green "Code" button and selecting "Download ZIP".
+
+2. To ensure that you have Python 3.7 or later installed on your local machine, enter the following command in your terminal or command prompt:
+
+  ``` python --version```
+
+If you don't have Python 3.7 or later installed, you can download it from the official Python website.
+
+3. Next, navigate to the root directory of the project where the requirements.txt file is located, and run the following command to install all the required packages:
 
 ```pip install -r requirements.txt```
 
-Note: Make sure to run this command in the root directory of the project where the requirements.txt file is located.
+4. Obtain API keys for Google Cloud Vision API and Google Maps API by following the documentation provided by each respective API.
 
-3. Obtain API keys for Google Cloud Vision API and Google Maps API. Please follow the documentation of respective APIs to acquire the keys.
+5. Set up the authentication credentials for Google Cloud Vision API by creating a service account and storing the private key JSON file in a secure location. Follow the instructions provided in the [Google Cloud Vision Official Documentation](https://cloud.google.com/vision/docs/before-you-begin)
 
-4. Set up the authentication credentials for Google Cloud Vision API by creating a service account and storing the private key JSON file in a secure location. Please follow the instructions provided in the [Google Cloud Vision Official Documentation](https://cloud.google.com/vision/docs/before-you-begin)
+After setting up the credentials, create a new file named config.json in the root directory of the project. Copy the contents of config.sample.json into config.json, and replace the YOUR_API_KEY_HERE placeholder with your actual Google Maps API key, and the PATH_TO_YOUR_CREDENTIALS_FILE placeholder with the path to the private key JSON file you created earlier. Update other parameters in the configuration file if necessary.
 
-Once you have obtained the API keys and set up the Google Cloud Vision credentials, create a new file named config.json in the root directory of the project. Copy the contents of config.sample.json into config.json and replace YOUR_API_KEY_HERE with your actual Google Maps API key and PATH_TO_YOUR_CREDENTIALS_FILE with the path to the JSON credentials file you created earlier. You can also update other parameters in the configuration file if required.
+5. Store the images you want to analyze in the directory mentioned in the image_dir parameter specified in the config.json file.
 
-5. Store images you want to analyze in the directory mentioned in the JSON file (image_dir parameter).
-
-6. Run the script using the following command in your terminal or command prompt:
+6. To run the script, navigate to the root directory of the project in your terminal or command prompt, and type in the following command:
 
 ```python main.py```
 
-The detection process will start, and you will see output in your terminal or command prompt indicating the status of each image being processed.
-
+The detection process will start, and you will see output in the terminal or command prompt indicating the status of each image being processed. 
 When the process is complete, you will find a result.json file in the current working directory containing the results of the object detection.
 
 # License
