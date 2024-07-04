@@ -50,12 +50,16 @@ def upload_file():
                                        config['google_application_credentials_file_path'], 
                                        app.config['UPLOAD_FOLDER'],
                                        False)
-            result = processor.process_single_image(filepath)
-            
-            # Add the image URL to the result
-            result['image_url'] = url_for('serve_upload', filename=filename)
-            
-            return render_template('result.html', result=result)
+            try:
+                result = processor.process_single_image(filepath)
+                
+                # Add the image URL to the result
+                result['image_url'] = url_for('serve_upload', filename=filename)
+                
+                return render_template('result.html', result=result)
+            except Exception as e:
+                flash(f"Error processing image: {str(e)}")
+                return redirect(url_for('upload_file'))
     return render_template('upload.html')
 
 if __name__ == '__main__':

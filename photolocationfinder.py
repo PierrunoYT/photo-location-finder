@@ -47,22 +47,26 @@ class ImageProcessor:
                 types.Feature(type=types.Feature.Type.IMAGE_PROPERTIES),
                 types.Feature(type=types.Feature.Type.SAFE_SEARCH_DETECTION)
             ]
-            response = self.client.annotate_image({
-                'image': image,
-                'features': features,
-            })
+            try:
+                response = self.client.annotate_image({
+                    'image': image,
+                    'features': features,
+                })
 
-            if response.error.message:
-                raise Exception(f"[VISION API ERROR] - {response.error.message}")
+                if response.error.message:
+                    raise Exception(f"[VISION API ERROR] - {response.error.message}")
 
-            result_data = {
-                "filename": image_path,
-                "landmarks": [],
-                "labels": [],
-                "web_entities": [],
-                "dominant_colors": [],
-                "safe_search": {}
-            }
+                result_data = {
+                    "filename": image_path,
+                    "landmarks": [],
+                    "labels": [],
+                    "web_entities": [],
+                    "dominant_colors": [],
+                    "safe_search": {}
+                }
+            except Exception as vision_error:
+                print(f"Error calling Vision API: {vision_error}")
+                raise Exception(f"[VISION API ERROR] - {str(vision_error)}")
 
             # Try to get GPS data from EXIF
             gps_info = self.get_gps_from_exif(image_path)
