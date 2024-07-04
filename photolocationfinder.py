@@ -148,42 +148,75 @@ class ImageProcessor:
         """Uses Google Maps Places API to get the approximate location based on object labels."""
         query = " ".join(object_labels)
         encoded_query = quote(query)
-        url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={encoded_query}&key={self.api_key}"
-        async with self.session.get(url) as response:
+        url = f"https://places.googleapis.com/v1/places:searchText"
+        headers = {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": self.api_key,
+            "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location,places.types"
+        }
+        data = {
+            "textQuery": encoded_query
+        }
+        async with self.session.post(url, headers=headers, json=data) as response:
             if response.ok:
                 data = await response.json()
-                if data.get("results"):
-                    location = data["results"][0]["geometry"]["location"]
-                    place_id = data["results"][0]["place_id"]
-                    return await self.get_place_details(place_id, location)
+                if data.get("places"):
+                    place = data["places"][0]
+                    return {
+                        "location": place["location"],
+                        "name": place["displayName"]["text"],
+                        "address": place["formattedAddress"],
+                        "types": place.get("types", [])
+                    }
         return None
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def get_place_details(self, place_id: str, location: dict):
         """Uses Google Maps Places API to get detailed information about a place."""
-        url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,formatted_address,type&key={self.api_key}"
-        async with self.session.get(url) as response:
+        url = f"https://places.googleapis.com/v1/places/{place_id}"
+        headers = {
+            "X-Goog-Api-Key": self.api_key,
+            "X-Goog-FieldMask": "displayName,formattedAddress,types"
+        }
+        async with self.session.get(url, headers=headers) as response:
             if response.ok:
                 data = await response.json()
-                if data.get("result"):
-                    return {
-                        "location": location,
-                        "name": data["result"].get("name"),
-                        "address": data["result"].get("formatted_address"),
-                        "types": data["result"].get("types", [])
-                    }
+                return {
+                    "location": location,
+                    "name": data.get("displayName", {}).get("text"),
+                    "address": data.get("formattedAddress"),
+                    "types": data.get("types", [])
+                }
         return {"location": location}
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def reverse_geocode(self, lat: float, lng: float):
         """Uses Google Maps Places API to get the address and place details from coordinates."""
-        url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={self.api_key}"
-        async with self.session.get(url) as response:
+        url = f"https://places.googleapis.com/v1/places:searchNearby"
+        headers = {
+            "Content-Type": "application/json",
+            "X-Goog-Api-Key": self.api_key,
+            "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.types"
+        }
+        data = {
+            "locationRestriction": {
+                "circle": {
+                    "center": {"latitude": lat, "longitude": lng},
+                    "radius": 1.0
+                }
+            }
+        }
+        async with self.session.post(url, headers=headers, json=data) as response:
             if response.ok:
                 data = await response.json()
-                if data.get("results"):
-                    place_id = data["results"][0]["place_id"]
-                    return await self.get_place_details(place_id, {"lat": lat, "lng": lng})
+                if data.get("places"):
+                    place = data["places"][0]
+                    return {
+                        "location": {"lat": lat, "lng": lng},
+                        "name": place["displayName"]["text"],
+                        "address": place["formattedAddress"],
+                        "types": place.get("types", [])
+                    }
         return None
 
     def get_files_by_extension(self, extensions: list[str]):
