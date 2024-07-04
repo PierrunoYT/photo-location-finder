@@ -34,7 +34,7 @@ class ImageProcessor:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def process_image(self, image_path: str):
-        """Processes a single image using the given client."""
+        """Processes a single image using both Google Cloud Vision API and Google Maps API."""
         try:
             with open(image_path, 'rb') as image_file:
                 content = image_file.read()
@@ -69,7 +69,7 @@ class ImageProcessor:
             if gps_info:
                 result_data["gps_location"] = gps_info
                 print(f"[INFO]: GPS data found in EXIF for '{image_path}'")
-                # Reverse geocode the GPS coordinates
+                # Reverse geocode the GPS coordinates using Google Maps API
                 address = await self.reverse_geocode(gps_info["latitude"], gps_info["longitude"])
                 if address:
                     result_data["address"] = address
@@ -88,17 +88,17 @@ class ImageProcessor:
                             "lat": result_data["landmarks"][0]["latitude"],
                             "lng": result_data["landmarks"][0]["longitude"]
                         }
-                        # Reverse geocode the landmark coordinates
+                        # Reverse geocode the landmark coordinates using Google Maps API
                         address = await self.reverse_geocode(result_data["location"]["lat"], result_data["location"]["lng"])
                         if address:
                             result_data["address"] = address
                 else:
-                    # If no landmarks were detected, try geocoding based on object labels
+                    # If no landmarks were detected, try geocoding based on object labels using Google Maps API
                     object_labels = [label.description.lower() for label in response.label_annotations[:3]]
                     location = await self.get_location_from_google_maps_api(object_labels)
                     if location:
                         result_data["location"] = location
-                        # Reverse geocode the estimated location
+                        # Reverse geocode the estimated location using Google Maps API
                         address = await self.reverse_geocode(location["lat"], location["lng"])
                         if address:
                             result_data["address"] = address
