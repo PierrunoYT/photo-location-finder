@@ -1,5 +1,0 @@
-{
-   "google_api_key": "YOUR_GOOGLE_API_KEY",
-   "google_application_credentials_file_path": "PATH_TO_YOUR_GOOGLE_APPLICATION_CREDENTIALS_FILE",
-   "image_directory_path": "YOUR_IMAGE_DIRECTORY_PATH"
-}
