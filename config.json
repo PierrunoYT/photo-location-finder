@@ -1,6 +1,5 @@
 {
-   "google_maps_api_key": "YOUR_GOOGLE_MAPS_API_KEY",
-   "google_cloud_api_key": "YOUR_GOOGLE_CLOUD_API_KEY",
+   "google_api_key": "YOUR_GOOGLE_API_KEY",
    "google_application_credentials_file_path": "YOUR_CREDENTIALS_FILE_PATH",
    "image_directory_path": "YOUR_IMAGE_DIRECTORY_PATH"
 }

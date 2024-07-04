@@ -12,9 +12,8 @@ from google.cloud.vision_v1.types import Feature
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 class ImageProcessor:
-    def __init__(self, maps_api_key, cloud_api_key, cred_path, image_dir, prompt_for_confirmation):
-        self.maps_api_key = maps_api_key
-        self.cloud_api_key = cloud_api_key
+    def __init__(self, api_key, cred_path, image_dir, prompt_for_confirmation):
+        self.api_key = api_key
         self.cred_path = cred_path
         self.image_dir = image_dir
         self.prompt_for_confirmation = prompt_for_confirmation
@@ -127,7 +126,7 @@ class ImageProcessor:
     async def get_location_from_google_maps_api(self, object_labels: list[str]):
         """Uses Google Maps API to get the approximate location of the landmark based on its appearance."""
         query = " ".join(object_labels)
-        url = f"https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input={query}&inputtype=textquery&fields=geometry&key={self.maps_api_key}"
+        url = f"https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input={query}&inputtype=textquery&fields=geometry&key={self.api_key}"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.ok:
