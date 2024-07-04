@@ -20,6 +20,10 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 def serve_static(filename):
     return send_from_directory(app.static_folder, filename)
 
+@app.route('/uploads/<path:filename>')
+def serve_upload(filename):
+    return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
@@ -47,6 +51,9 @@ def upload_file():
                                        app.config['UPLOAD_FOLDER'],
                                        False)
             result = processor.process_single_image(filepath)
+            
+            # Add the image URL to the result
+            result['image_url'] = url_for('serve_upload', filename=filename)
             
             return render_template('result.html', result=result)
     return render_template('upload.html')

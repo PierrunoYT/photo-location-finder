@@ -6,7 +6,28 @@
 </head>
 <body>
     <h1>Image Processing Result</h1>
+    
+    <h2>Uploaded Image</h2>
+    <img src="{{ result.image_url }}" alt="Uploaded Image" style="max-width: 500px;">
+    
+    <h2>Location</h2>
+    {% if result.get('gps_location') %}
+        <p>Latitude: {{ result.gps_location.latitude }}</p>
+        <p>Longitude: {{ result.gps_location.longitude }}</p>
+    {% elif result.get('landmarks') %}
+        <p>Landmark: {{ result.landmarks[0].name }}</p>
+        <p>Latitude: {{ result.landmarks[0].latitude }}</p>
+        <p>Longitude: {{ result.landmarks[0].longitude }}</p>
+    {% elif result.get('location') %}
+        <p>Latitude: {{ result.location.lat }}</p>
+        <p>Longitude: {{ result.location.lng }}</p>
+    {% else %}
+        <p>No location information available.</p>
+    {% endif %}
+    
+    <h2>Full Results</h2>
     <pre>{{ result | tojson(indent=2) }}</pre>
+    
     <a href="{{ url_for('upload_file') }}">Upload another image</a>
 </body>
 </html>
