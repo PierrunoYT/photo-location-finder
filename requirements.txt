@@ -6,3 +6,4 @@ google-cloud-vision==3.4.1
 aiohttp==3.8.4
 tenacity==8.2.2
 Pillow==9.5.0
+Flask==2.3.2

@@ -47,6 +47,8 @@ Before running the program, ensure that you have:
 
 ## Usage
 
+### Command Line Interface
+
 1. Ensure your images are stored in the directory specified in the `image_directory_path` parameter in `config.json`.
 
 2. To run the script, navigate to the root directory of the project and run the following command:
@@ -59,6 +61,21 @@ Before running the program, ensure that you have:
 4. When the process is complete, you will find:
    - A `result.json` file in the current working directory containing the final results of the image analysis.
    - Multiple `intermediate_results_[timestamp].json` files containing intermediate results for each processed image.
+
+### Web Interface
+
+1. To run the web interface, navigate to the root directory of the project and run the following command:
+   ```
+   python web_app.py
+   ```
+
+2. Open a web browser and go to `http://localhost:5000`.
+
+3. You will see a simple interface where you can upload an image file.
+
+4. After uploading, the image will be processed, and the results will be displayed on the page.
+
+5. You can then choose to upload another image.
 
 ## Error Handling and Retries
 

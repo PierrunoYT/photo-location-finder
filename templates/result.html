@@ -1,0 +1,11 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Image Processing Result</title>
+</head>
+<body>
+    <h1>Image Processing Result</h1>
+    <pre>{{ result | tojson(indent=2) }}</pre>
+    <a href="{{ url_for('upload_file') }}">Upload another image</a>
+</body>
+</html>

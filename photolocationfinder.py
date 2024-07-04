@@ -20,7 +20,11 @@ class ImageProcessor:
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.cred_path
         self.client = None
 
-    async def initialize_client(self):
+    def initialize_client(self):
+        if self.client is None:
+            self.client = vision_v1.ImageAnnotatorClient()
+
+    async def initialize_client_async(self):
         if self.client is None:
             self.client = vision_v1.ImageAnnotatorClient()
 
@@ -195,3 +199,12 @@ class ImageProcessor:
             json.dump(result_data, f, indent=4)
 
         print(f"Detection completed. Results saved to '{result_file.absolute()}'.")
+
+    def process_single_image(self, image_path):
+        """Processes a single image and returns the result."""
+        self.initialize_client()
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        result = loop.run_until_complete(self.process_image(image_path))
+        loop.close()
+        return result
