@@ -2,6 +2,9 @@
 # Ignore improve_geolocation.txt
 improve_geolocation.txt
 
+# Ignore configuration file with sensitive information
+config.json
+
 # Ignore Python bytecode files
 __pycache__/
 *.py[cod]

@@ -1,5 +1,5 @@
 {
-   "google_api_key": "AIzaSyDjEWTnJB-ldcgX9EPG5tsmu_ZoSY6MThs",
-   "google_application_credentials_file_path": "C:/Users/pierr/Downloads/prediction-ai-428218-a54f3128d8ae.json",
+   "google_api_key": "YOUR_GOOGLE_API_KEY",
+   "google_application_credentials_file_path": "PATH_TO_YOUR_GOOGLE_APPLICATION_CREDENTIALS_FILE",
    "image_directory_path": "YOUR_IMAGE_DIRECTORY_PATH"
 }
