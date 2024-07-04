@@ -4,6 +4,7 @@ improve_geolocation.txt
 
 # Ignore configuration file with sensitive information
 config.json
+config.json.template
 
 # Ignore Python bytecode files
 __pycache__/
