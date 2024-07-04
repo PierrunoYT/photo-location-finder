@@ -20,6 +20,7 @@ class ImageProcessor:
         self.prompt_for_confirmation = prompt_for_confirmation
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.cred_path
         self.client = None
+        self.session = None
 
     def initialize_client(self):
         if self.client is None:
@@ -27,7 +28,9 @@ class ImageProcessor:
 
     async def initialize_client_async(self):
         if self.client is None:
-            self.client = vision_v1.ImageAnnotatorClient()
+            self.client = vision.ImageAnnotatorClient()
+        if self.session is None:
+            self.session = aiohttp.ClientSession()
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def process_image(self, image_path: str):
@@ -142,29 +145,45 @@ class ImageProcessor:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def get_location_from_google_maps_api(self, object_labels: list[str]):
-        """Uses Google Maps Geocoding API to get the approximate location based on object labels."""
+        """Uses Google Maps Places API to get the approximate location based on object labels."""
         query = " ".join(object_labels)
         encoded_query = quote(query)
-        url = f"https://maps.googleapis.com/maps/api/geocode/json?address={encoded_query}&key={self.api_key}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.ok:
-                    data = await response.json()
-                    if data.get("results"):
-                        location = data["results"][0]["geometry"]["location"]
-                        return location
+        url = f"https://maps.googleapis.com/maps/api/place/textsearch/json?query={encoded_query}&key={self.api_key}"
+        async with self.session.get(url) as response:
+            if response.ok:
+                data = await response.json()
+                if data.get("results"):
+                    location = data["results"][0]["geometry"]["location"]
+                    place_id = data["results"][0]["place_id"]
+                    return await self.get_place_details(place_id, location)
         return None
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    async def get_place_details(self, place_id: str, location: dict):
+        """Uses Google Maps Places API to get detailed information about a place."""
+        url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,formatted_address,type&key={self.api_key}"
+        async with self.session.get(url) as response:
+            if response.ok:
+                data = await response.json()
+                if data.get("result"):
+                    return {
+                        "location": location,
+                        "name": data["result"].get("name"),
+                        "address": data["result"].get("formatted_address"),
+                        "types": data["result"].get("types", [])
+                    }
+        return {"location": location}
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def reverse_geocode(self, lat: float, lng: float):
-        """Uses Google Maps Geocoding API to get the address from coordinates."""
+        """Uses Google Maps Places API to get the address and place details from coordinates."""
         url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={self.api_key}"
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url) as response:
-                if response.ok:
-                    data = await response.json()
-                    if data.get("results"):
-                        return data["results"][0]["formatted_address"]
+        async with self.session.get(url) as response:
+            if response.ok:
+                data = await response.json()
+                if data.get("results"):
+                    place_id = data["results"][0]["place_id"]
+                    return await self.get_place_details(place_id, {"lat": lat, "lng": lng})
         return None
 
     def get_files_by_extension(self, extensions: list[str]):
@@ -202,7 +221,7 @@ class ImageProcessor:
         return None
 
     async def detect_objects_in_images(self):
-        await self.initialize_client()
+        await self.initialize_client_async()
         image_files = self.get_files_by_extension(["png", "jpg", "jpeg"])
         num_images = len(image_files)
         if num_images == 0:
@@ -230,6 +249,9 @@ class ImageProcessor:
             json.dump(result_data, f, indent=4)
 
         print(f"Detection completed. Results saved to '{result_file.absolute()}'.")
+        
+        # Close the aiohttp session
+        await self.session.close()
 
     def process_single_image(self, image_path):
         """Processes a single image and returns the result."""
