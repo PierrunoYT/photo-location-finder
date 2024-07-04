@@ -65,6 +65,11 @@ class ImageProcessor:
                     "dominant_colors": [],
                     "safe_search": {}
                 }
+
+                # Check if response is None
+                if response is None:
+                    print(f"[WARNING]: Received None response for image '{image_path}'")
+                    return result_data
             except Exception as vision_error:
                 print(f"Error calling Vision API: {vision_error}")
                 print(f"Image path: {image_path}")
