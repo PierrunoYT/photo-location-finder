@@ -12,8 +12,9 @@ from google.cloud.vision_v1.types import Feature
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 class ImageProcessor:
-    def __init__(self, maps_api_key, cred_path, image_dir, prompt_for_confirmation):
+    def __init__(self, maps_api_key, cloud_api_key, cred_path, image_dir, prompt_for_confirmation):
         self.maps_api_key = maps_api_key
+        self.cloud_api_key = cloud_api_key
         self.cred_path = cred_path
         self.image_dir = image_dir
         self.prompt_for_confirmation = prompt_for_confirmation
