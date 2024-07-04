@@ -14,7 +14,11 @@ class ImageProcessor:
         self.image_dir = image_dir
         self.prompt_for_confirmation = prompt_for_confirmation
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.cred_path
-        self.client = vision_v1.ImageAnnotatorClient()
+        self.client = None
+
+    async def initialize_client(self):
+        if self.client is None:
+            self.client = vision_v1.ImageAnnotatorClient()
 
     async def process_image(self, image_path: str):
         """Processes a single image using the given client."""
@@ -28,7 +32,7 @@ class ImageProcessor:
                 Feature(type=Feature.Type.LABEL_DETECTION),
                 Feature(type=Feature.Type.WEB_DETECTION)
             ]
-            response = await self.client.annotate_image({
+            response = self.client.annotate_image({
                 'image': image,
                 'features': features,
             })
@@ -93,6 +97,7 @@ class ImageProcessor:
         return files
 
     async def detect_objects_in_images(self):
+        await self.initialize_client()
         image_files = self.get_files_by_extension(["png", "jpg", "jpeg"])
         num_images = len(image_files)
         if num_images == 0:
