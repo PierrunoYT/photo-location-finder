@@ -227,8 +227,12 @@ class ImageProcessor:
         await self.session.close()
 
     def process_single_image(self, image_path):
-        loop = asyncio.get_event_loop()
-        return loop.run_until_complete(self._process_single_image(image_path))
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
+        try:
+            return loop.run_until_complete(self._process_single_image(image_path))
+        finally:
+            loop.close()
 
     async def _process_single_image(self, image_path):
         await self.initialize()
