@@ -9,6 +9,7 @@ from PIL.ExifTags import TAGS, GPSTAGS
 import aiohttp
 from google.cloud import vision
 from google.cloud.vision_v1 import types
+import tenacity
 from tenacity import retry, stop_after_attempt, wait_exponential
 from urllib.parse import quote
 
@@ -70,6 +71,10 @@ class ImageProcessor:
                 print(f"Image size: {len(content)} bytes")
                 print(f"Features requested: {features}")
                 raise Exception(f"[VISION API ERROR] - {str(vision_error)}")
+        except tenacity.RetryError as retry_error:
+            print(f"RetryError occurred: {retry_error}")
+            print(f"Last attempt exception: {retry_error.last_attempt.exception()}")
+            raise Exception(f"[RETRY ERROR] - Failed to process image after multiple attempts: {str(retry_error)}")
 
             # Try to get GPS data from EXIF
             gps_info = self.get_gps_from_exif(image_path)
