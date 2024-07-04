@@ -2,7 +2,7 @@ google-auth==2.18.0
 google-auth-oauthlib==0.4.2
 google-auth-httplib2==0.1.0
 google-api-python-client==2.86.0
-google-cloud-vision==3.4.1
+google-cloud-vision==3.7.2
 aiohttp==3.8.4
 tenacity==8.2.2
 Pillow==9.5.0
