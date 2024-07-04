@@ -24,7 +24,7 @@ class ImageProcessor:
 
     async def initialize(self):
         if self.client is None:
-            self.client = vision.ImageAnnotatorClient()
+            self.client = vision.ImageAnnotatorAsyncClient()
         if self.session is None:
             self.session = aiohttp.ClientSession()
 
@@ -43,7 +43,8 @@ class ImageProcessor:
                 types.Feature(type=types.Feature.Type.SAFE_SEARCH_DETECTION)
             ]
 
-            response = await self.client.annotate_image({'image': image, 'features': features})
+            request = types.AnnotateImageRequest(image=image, features=features)
+            response = await self.client.annotate_image(request)
 
             if response.error.message:
                 raise Exception(f"[VISION API ERROR] - {response.error.message}")
