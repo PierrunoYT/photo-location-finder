@@ -75,6 +75,11 @@ class ImageProcessor:
                             "longitude": landmark.locations[0].lat_lng.longitude,
                             "confidence": landmark.score
                         })
+                    if result_data["landmarks"]:
+                        result_data["location"] = {
+                            "lat": result_data["landmarks"][0]["latitude"],
+                            "lng": result_data["landmarks"][0]["longitude"]
+                        }
                 else:
                     # If no landmarks were detected, try reverse geocoding based on object labels
                     object_labels = [label.description.lower() for label in response.label_annotations[:3]]
