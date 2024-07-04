@@ -42,7 +42,7 @@ def upload_file():
             file.save(filepath)
             
             # Process the image
-            processor = ImageProcessor(config['google_cloud_api_key'], 
+            processor = ImageProcessor(config['google_maps_api_key'], 
                                        config['google_application_credentials_file_path'], 
                                        app.config['UPLOAD_FOLDER'],
                                        False)
