@@ -91,34 +91,38 @@ class ImageProcessor:
                 if address:
                     result_data["address"] = address
             else:
-                landmarks = response.landmark_annotations
-                if landmarks:
-                    for landmark in landmarks:
-                        result_data["landmarks"].append({
-                            "name": landmark.description,
-                            "latitude": landmark.locations[0].lat_lng.latitude,
-                            "longitude": landmark.locations[0].lat_lng.longitude,
-                            "confidence": landmark.score
-                        })
-                    if result_data["landmarks"]:
-                        result_data["location"] = {
-                            "lat": result_data["landmarks"][0]["latitude"],
-                            "lng": result_data["landmarks"][0]["longitude"]
-                        }
-                        # Reverse geocode the landmark coordinates using Google Maps API
-                        address = await self.reverse_geocode(result_data["location"]["lat"], result_data["location"]["lng"])
-                        if address:
-                            result_data["address"] = address
+                if response:
+                    landmarks = response.landmark_annotations
+                    if landmarks:
+                        for landmark in landmarks:
+                            if landmark.locations and landmark.locations[0].lat_lng:
+                                result_data["landmarks"].append({
+                                    "name": landmark.description,
+                                    "latitude": landmark.locations[0].lat_lng.latitude,
+                                    "longitude": landmark.locations[0].lat_lng.longitude,
+                                    "confidence": landmark.score
+                                })
+                        if result_data["landmarks"]:
+                            result_data["location"] = {
+                                "lat": result_data["landmarks"][0]["latitude"],
+                                "lng": result_data["landmarks"][0]["longitude"]
+                            }
+                            # Reverse geocode the landmark coordinates using Google Maps API
+                            address = await self.reverse_geocode(result_data["location"]["lat"], result_data["location"]["lng"])
+                            if address:
+                                result_data["address"] = address
+                    else:
+                        # If no landmarks were detected, try geocoding based on object labels using Google Maps API
+                        object_labels = [label.description.lower() for label in response.label_annotations[:3] if label.description]
+                        location = await self.get_location_from_google_maps_api(object_labels)
+                        if location:
+                            result_data["location"] = location
+                            # Reverse geocode the estimated location using Google Maps API
+                            address = await self.reverse_geocode(location["lat"], location["lng"])
+                            if address:
+                                result_data["address"] = address
                 else:
-                    # If no landmarks were detected, try geocoding based on object labels using Google Maps API
-                    object_labels = [label.description.lower() for label in response.label_annotations[:3]]
-                    location = await self.get_location_from_google_maps_api(object_labels)
-                    if location:
-                        result_data["location"] = location
-                        # Reverse geocode the estimated location using Google Maps API
-                        address = await self.reverse_geocode(location["lat"], location["lng"])
-                        if address:
-                            result_data["address"] = address
+                    print(f"[WARNING]: Received empty response for image '{image_path}'")
 
             labels = response.label_annotations
             if labels:
