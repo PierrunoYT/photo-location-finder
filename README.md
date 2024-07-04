@@ -12,6 +12,8 @@ This Python program detects landmarks, labels, web entities, and other image pro
 - Asynchronous processing for improved performance
 - Error handling and retries for API calls
 - Intermediate results saving
+- GPS data extraction from EXIF metadata
+- Geolocation using Google Maps API when landmark detection fails
 
 ## Prerequisites
 
@@ -19,6 +21,7 @@ Before running the program, ensure that you have:
 
 - A valid Google Cloud API key
 - Google Cloud credentials file
+- Google Maps API key
 - A directory with images for analysis
 - Python 3.7 or later
 - All required libraries and packages

@@ -1,1 +1,30 @@
 .aider*
+# Ignore improve_geolocation.txt
+improve_geolocation.txt
+
+# Ignore Python bytecode files
+__pycache__/
+*.py[cod]
+
+# Ignore environment-specific files
+.env
+venv/
+env/
+
+# Ignore IDE-specific files
+.vscode/
+.idea/
+
+# Ignore OS-specific files
+.DS_Store
+Thumbs.db
+
+# Ignore log files
+*.log
+
+# Ignore intermediate and result JSON files
+intermediate_results_*.json
+result.json
+
+# Ignore configuration file with sensitive information
+config.json
