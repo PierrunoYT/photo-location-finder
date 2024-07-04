@@ -1,6 +1,6 @@
-# photo-location-finder
+# Photo Location Finder
 
-This Python program detects landmarks, labels, web entities, and other image properties in a set of images using the Google Cloud Vision API. The program takes a JSON configuration file that contains the API key and credentials file path for the Google Cloud Vision API, as well as other optional parameters, such as the directory for image files.
+This Python application detects landmarks, labels, web entities, and other image properties in images using the Google Cloud Vision API. It provides both a command-line interface and a web interface for processing images and retrieving location information.
 
 ## Features
 
@@ -9,82 +9,76 @@ This Python program detects landmarks, labels, web entities, and other image pro
 - Web entity detection
 - Image properties analysis (dominant colors)
 - Safe search detection
+- GPS data extraction from EXIF metadata
+- Geolocation using Google Maps API when landmark detection fails
 - Asynchronous processing for improved performance
 - Error handling and retries for API calls
 - Intermediate results saving
-- GPS data extraction from EXIF metadata
-- Geolocation using Google Maps API when landmark detection fails
+- Web interface for easy image upload and result viewing
 
 ## Prerequisites
 
-Before running the program, ensure that you have:
+Before running the application, ensure that you have:
 
+- Python 3.7 or later
 - A valid Google Cloud API key
 - Google Cloud credentials file
 - Google Maps API key
-- A directory with images for analysis
-- Python 3.7 or later
-- All required libraries and packages
 
 ## Installation
 
-1. Clone the repository onto your local machine:
+1. Clone the repository:
    ```
    git clone https://github.com/PierrunoYT/photo-location-finder
    ```
-   Alternatively, download the zip file from GitHub.
 
-2. Navigate to the root directory of the project and install the required packages:
+2. Navigate to the project directory and install the required packages:
    ```
    pip install -r requirements.txt
    ```
 
-3. Obtain API keys for Google Cloud Vision API and Google Maps API by following the documentation provided by each respective API.
-
-4. Set up the authentication credentials for Google Cloud Vision API by creating a service account and storing the private key JSON file in a secure location. Follow the instructions provided in the [Google Cloud Vision Official Documentation](https://cloud.google.com/vision/docs/before-you-begin)
-
-5. Open the `config.json` file and replace the placeholders with your actual Google Maps API key, the path to the private key JSON file, and the directory path for your images. Update other parameters in the configuration file if necessary.
+3. Set up the configuration:
+   - Copy `config.json.template` to `config.json`
+   - Fill in your Google API key, Google Application Credentials file path, and other necessary information in `config.json`
 
 ## Usage
 
 ### Command Line Interface
 
-1. Ensure your images are stored in the directory specified in the `image_directory_path` parameter in `config.json`.
+1. Ensure your images are in the directory specified in `config.json`.
 
-2. To run the script, navigate to the root directory of the project and run the following command:
+2. Run the script:
    ```
-   python main.py
+   python photolocationfinder.py
    ```
 
-3. The detection process will start, and you will see output in the terminal indicating the status of each image being processed. 
-
-4. When the process is complete, you will find:
-   - A `result.json` file in the current working directory containing the final results of the image analysis.
-   - Multiple `intermediate_results_[timestamp].json` files containing intermediate results for each processed image.
+3. The script will process the images and generate:
+   - A `result.json` file with the final results
+   - `intermediate_results_[timestamp].json` files for each processed image
 
 ### Web Interface
 
-1. To run the web interface, navigate to the root directory of the project and run the following command:
+1. Start the web application:
    ```
    python web_app.py
    ```
 
 2. Open a web browser and go to `http://localhost:5000`.
 
-3. You will see a simple interface where you can upload an image file.
-
-4. After uploading, the image will be processed, and the results will be displayed on the page.
-
-5. You can then choose to upload another image.
+3. Use the interface to upload and process individual images.
 
 ## Error Handling and Retries
 
-The program implements error handling and retries for API calls using the `tenacity` library. If an API call fails, it will be retried up to 3 times with exponential backoff.
+The application uses the `tenacity` library for error handling and retries. API calls are retried up to 3 times with exponential backoff if they fail.
 
 ## License
 
-This program is licensed under the MIT License. See the `LICENSE` file for more information.
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
 
 ## Contact
 
-For any questions, suggestions, or issues, please open an issue on the GitHub repository or submit a pull request.
+For questions, suggestions, or issues, please open an issue on the GitHub repository.
