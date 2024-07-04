@@ -9,7 +9,6 @@ from PIL.ExifTags import TAGS, GPSTAGS
 import aiohttp
 from google.cloud import vision
 from google.cloud.vision_v1 import types
-import tenacity
 from tenacity import retry, stop_after_attempt, wait_exponential
 from urllib.parse import quote
 
@@ -23,11 +22,7 @@ class ImageProcessor:
         self.client = None
         self.session = None
 
-    def initialize_client(self):
-        if self.client is None:
-            self.client = vision.ImageAnnotatorClient()
-
-    async def initialize_client_async(self):
+    async def initialize(self):
         if self.client is None:
             self.client = vision.ImageAnnotatorClient()
         if self.session is None:
@@ -35,7 +30,6 @@ class ImageProcessor:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def process_image(self, image_path: str):
-        """Processes a single image using both Google Cloud Vision API and Google Maps API."""
         try:
             with open(image_path, 'rb') as image_file:
                 content = image_file.read()
@@ -48,126 +42,86 @@ class ImageProcessor:
                 types.Feature(type=types.Feature.Type.IMAGE_PROPERTIES),
                 types.Feature(type=types.Feature.Type.SAFE_SEARCH_DETECTION)
             ]
-            try:
-                response = self.client.annotate_image({
-                    'image': image,
-                    'features': features,
-                })
 
-                if response.error.message:
-                    raise Exception(f"[VISION API ERROR] - {response.error.message}")
+            response = await self.client.annotate_image({'image': image, 'features': features})
 
-                result_data = {
-                    "filename": image_path,
-                    "landmarks": [],
-                    "labels": [],
-                    "web_entities": [],
-                    "dominant_colors": [],
-                    "safe_search": {}
-                }
+            if response.error.message:
+                raise Exception(f"[VISION API ERROR] - {response.error.message}")
 
-                # Check if response is None
-                if response is None:
-                    print(f"[WARNING]: Received None response for image '{image_path}'")
-                    return result_data
-            except Exception as vision_error:
-                print(f"Error calling Vision API: {vision_error}")
-                print(f"Image path: {image_path}")
-                print(f"Image size: {len(content)} bytes")
-                print(f"Features requested: {features}")
-                raise Exception(f"[VISION API ERROR] - {str(vision_error)}")
-        except tenacity.RetryError as retry_error:
-            print(f"RetryError occurred: {retry_error}")
-            print(f"Last attempt exception: {retry_error.last_attempt.exception()}")
-            raise Exception(f"[RETRY ERROR] - Failed to process image after multiple attempts: {str(retry_error)}")
+            result_data = self.extract_data_from_response(response, image_path)
 
-            # Try to get GPS data from EXIF
             gps_info = self.get_gps_from_exif(image_path)
             if gps_info:
                 result_data["gps_location"] = gps_info
-                print(f"[INFO]: GPS data found in EXIF for '{image_path}'")
-                # Reverse geocode the GPS coordinates using Google Maps API
                 address = await self.reverse_geocode(gps_info["latitude"], gps_info["longitude"])
                 if address:
                     result_data["address"] = address
-            else:
-                if response:
-                    landmarks = response.landmark_annotations
-                    if landmarks:
-                        for landmark in landmarks:
-                            if landmark.locations and landmark.locations[0].lat_lng:
-                                result_data["landmarks"].append({
-                                    "name": landmark.description,
-                                    "latitude": landmark.locations[0].lat_lng.latitude,
-                                    "longitude": landmark.locations[0].lat_lng.longitude,
-                                    "confidence": landmark.score
-                                })
-                        if result_data["landmarks"]:
-                            result_data["location"] = {
-                                "lat": result_data["landmarks"][0]["latitude"],
-                                "lng": result_data["landmarks"][0]["longitude"]
-                            }
-                            # Reverse geocode the landmark coordinates using Google Maps API
-                            address = await self.reverse_geocode(result_data["location"]["lat"], result_data["location"]["lng"])
-                            if address:
-                                result_data["address"] = address
-                    else:
-                        # If no landmarks were detected, try geocoding based on object labels using Google Maps API
-                        object_labels = [label.description.lower() for label in response.label_annotations[:3] if label.description]
-                        location = await self.get_location_from_google_maps_api(object_labels)
-                        if location:
-                            result_data["location"] = location
-                            # Reverse geocode the estimated location using Google Maps API
-                            address = await self.reverse_geocode(location["lat"], location["lng"])
-                            if address:
-                                result_data["address"] = address
-                else:
-                    print(f"[WARNING]: Received empty response for image '{image_path}'")
+            elif not result_data.get("landmarks"):
+                location = await self.get_location_from_google_maps_api(result_data["labels"][:3])
+                if location:
+                    result_data["location"] = location
+                    address = await self.reverse_geocode(location["lat"], location["lng"])
+                    if address:
+                        result_data["address"] = address
 
-            labels = response.label_annotations
-            if labels:
-                for label in labels:
-                    result_data["labels"].append({"label": label.description, "score": label.score})
-
-            web_entities = response.web_detection.web_entities
-            if web_entities:
-                for entity in web_entities:
-                    result_data["web_entities"].append({"entity": entity.description, "score": entity.score})
-
-            # Add dominant colors
-            colors = response.image_properties_annotation.dominant_colors.colors
-            for color in colors[:5]:  # Get top 5 dominant colors
-                result_data["dominant_colors"].append({
-                    "red": color.color.red,
-                    "green": color.color.green,
-                    "blue": color.color.blue,
-                    "score": color.score,
-                    "pixel_fraction": color.pixel_fraction
-                })
-
-            # Add safe search annotation
-            safe_search = response.safe_search_annotation
-            result_data["safe_search"] = {
-                "adult": safe_search.adult,
-                "medical": safe_search.medical,
-                "spoofed": safe_search.spoof,
-                "violence": safe_search.violence,
-                "racy": safe_search.racy
-            }
-
-            print(f"[INFO]: Successfully processed image '{image_path}'")
             await self.save_intermediate_result(result_data)
             return result_data
 
-        except FileNotFoundError as f:
-            raise Exception(f"[IO ERROR][Image '{image_path}']: {f}") from f
         except Exception as e:
-            raise Exception(f"[PROCESSING ERROR][Image '{image_path}']: {e}")
+            print(f"[PROCESSING ERROR][Image '{image_path}']: {str(e)}")
+            return {"error": str(e), "filename": image_path}
+
+    def extract_data_from_response(self, response, image_path):
+        result_data = {
+            "filename": image_path,
+            "landmarks": [],
+            "labels": [],
+            "web_entities": [],
+            "dominant_colors": [],
+            "safe_search": {}
+        }
+
+        if response.landmark_annotations:
+            for landmark in response.landmark_annotations:
+                if landmark.locations and landmark.locations[0].lat_lng:
+                    result_data["landmarks"].append({
+                        "name": landmark.description,
+                        "latitude": landmark.locations[0].lat_lng.latitude,
+                        "longitude": landmark.locations[0].lat_lng.longitude,
+                        "confidence": landmark.score
+                    })
+            if result_data["landmarks"]:
+                result_data["location"] = {
+                    "lat": result_data["landmarks"][0]["latitude"],
+                    "lng": result_data["landmarks"][0]["longitude"]
+                }
+
+        result_data["labels"] = [{"label": label.description, "score": label.score} for label in response.label_annotations]
+        result_data["web_entities"] = [{"entity": entity.description, "score": entity.score} for entity in response.web_detection.web_entities]
+
+        colors = response.image_properties_annotation.dominant_colors.colors
+        result_data["dominant_colors"] = [{
+            "red": color.color.red,
+            "green": color.color.green,
+            "blue": color.color.blue,
+            "score": color.score,
+            "pixel_fraction": color.pixel_fraction
+        } for color in colors[:5]]
+
+        safe_search = response.safe_search_annotation
+        result_data["safe_search"] = {
+            "adult": safe_search.adult,
+            "medical": safe_search.medical,
+            "spoofed": safe_search.spoof,
+            "violence": safe_search.violence,
+            "racy": safe_search.racy
+        }
+
+        return result_data
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def get_location_from_google_maps_api(self, object_labels: list[str]):
-        """Uses Google Maps Places API to get the approximate location based on object labels."""
-        query = " ".join(object_labels)
+        query = " ".join(label["label"] for label in object_labels)
         encoded_query = quote(query)
         url = f"https://places.googleapis.com/v1/places:searchText"
         headers = {
@@ -175,16 +129,15 @@ class ImageProcessor:
             "X-Goog-Api-Key": self.api_key,
             "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location,places.types"
         }
-        data = {
-            "textQuery": encoded_query
-        }
+        data = {"textQuery": encoded_query}
         async with self.session.post(url, headers=headers, json=data) as response:
             if response.ok:
                 data = await response.json()
                 if data.get("places"):
                     place = data["places"][0]
                     return {
-                        "location": place["location"],
+                        "lat": place["location"]["latitude"],
+                        "lng": place["location"]["longitude"],
                         "name": place["displayName"]["text"],
                         "address": place["formattedAddress"],
                         "types": place.get("types", [])
@@ -192,27 +145,7 @@ class ImageProcessor:
         return None
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
-    async def get_place_details(self, place_id: str, location: dict):
-        """Uses Google Maps Places API to get detailed information about a place."""
-        url = f"https://places.googleapis.com/v1/places/{place_id}"
-        headers = {
-            "X-Goog-Api-Key": self.api_key,
-            "X-Goog-FieldMask": "displayName,formattedAddress,types"
-        }
-        async with self.session.get(url, headers=headers) as response:
-            if response.ok:
-                data = await response.json()
-                return {
-                    "location": location,
-                    "name": data.get("displayName", {}).get("text"),
-                    "address": data.get("formattedAddress"),
-                    "types": data.get("types", [])
-                }
-        return {"location": location}
-
-    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def reverse_geocode(self, lat: float, lng: float):
-        """Uses Google Maps Places API to get the address and place details from coordinates."""
         url = f"https://places.googleapis.com/v1/places:searchNearby"
         headers = {
             "Content-Type": "application/json",
@@ -233,7 +166,6 @@ class ImageProcessor:
                 if data.get("places"):
                     place = data["places"][0]
                     return {
-                        "location": {"lat": lat, "lng": lng},
                         "name": place["displayName"]["text"],
                         "address": place["formattedAddress"],
                         "types": place.get("types", [])
@@ -241,21 +173,15 @@ class ImageProcessor:
         return None
 
     def get_files_by_extension(self, extensions: list[str]):
-        """Returns a list of files in directory that match one or more extensions."""
-        files = []
-        for ext in extensions:
-            files.extend(Path(self.image_dir).glob(f"*.{ext}"))
-        return files
+        return [f for ext in extensions for f in Path(self.image_dir).glob(f"*.{ext}")]
 
     async def save_intermediate_result(self, result_data):
-        """Saves intermediate results to a JSON file."""
         intermediate_file = Path(f'intermediate_results_{int(time.time())}.json')
         with intermediate_file.open("w") as f:
             json.dump(result_data, f, indent=4)
         print(f"Intermediate result saved to '{intermediate_file.absolute()}'.")
 
     def get_gps_from_exif(self, image_path):
-        """Extracts GPS coordinates from image EXIF data if available."""
         try:
             with Image.open(image_path) as img:
                 exif = {TAGS[k]: v for k, v in img._getexif().items() if k in TAGS}
@@ -274,8 +200,8 @@ class ImageProcessor:
             print(f"Error extracting EXIF data from {image_path}: {e}")
         return None
 
-    async def detect_objects_in_images(self):
-        await self.initialize_client_async()
+    async def process_images(self):
+        await self.initialize()
         image_files = self.get_files_by_extension(["png", "jpg", "jpeg"])
         num_images = len(image_files)
         if num_images == 0:
@@ -284,34 +210,41 @@ class ImageProcessor:
 
         print(f"{num_images} image files found.")
 
-        # Prompt for confirmation if there are more than 100 images
         if num_images > 100 and self.prompt_for_confirmation:
             confirm = input(f"WARNING: {num_images} images found. Continue? (y/n): ")
             if not confirm.lower().startswith("y"):
                 print("Operation cancelled.")
                 return
 
-        result_data = []
-        # Process each image using asyncio tasks
-        tasks = [asyncio.create_task(self.process_image(str(img_f))) for img_f in image_files]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
-        result_data = [data for data in results if isinstance(data, dict)]
+        tasks = [self.process_image(str(img_f)) for img_f in image_files]
+        results = await asyncio.gather(*tasks)
 
-        # Write the result data to a JSON file in pretty print format
         result_file = Path('result.json')
         with result_file.open("w") as f:
-            json.dump(result_data, f, indent=4)
+            json.dump(results, f, indent=4)
 
-        print(f"Detection completed. Results saved to '{result_file.absolute()}'.")
-        
-        # Close the aiohttp session
+        print(f"Processing completed. Results saved to '{result_file.absolute()}'.")
         await self.session.close()
 
     def process_single_image(self, image_path):
-        """Processes a single image and returns the result."""
-        self.initialize_client()
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        result = loop.run_until_complete(self.process_image(image_path))
-        loop.close()
+        loop = asyncio.get_event_loop()
+        return loop.run_until_complete(self._process_single_image(image_path))
+
+    async def _process_single_image(self, image_path):
+        await self.initialize()
+        result = await self.process_image(image_path)
+        await self.session.close()
         return result
+
+if __name__ == "__main__":
+    with open('config.json', 'r') as config_file:
+        config = json.load(config_file)
+    
+    processor = ImageProcessor(
+        api_key=config['google_api_key'],
+        cred_path=config['google_application_credentials_file_path'],
+        image_dir=config['image_directory_path'],
+        prompt_for_confirmation=True
+    )
+    
+    asyncio.run(processor.process_images())

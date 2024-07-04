@@ -5,16 +5,19 @@ from werkzeug.utils import secure_filename
 from photolocationfinder import ImageProcessor
 
 app = Flask(__name__, static_folder='static')
-app.secret_key = 'your_secret_key'  # Change this to a random secret key
+app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'fallback_secret_key')
 
-# Load configuration
 with open('config.json', 'r') as config_file:
     config = json.load(config_file)
 
 UPLOAD_FOLDER = 'uploads'
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
 
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max-limit
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route('/static/<path:filename>')
 def serve_static(filename):
@@ -24,19 +27,13 @@ def serve_static(filename):
 def serve_upload(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
-def allowed_file(filename):
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
-
 @app.route('/', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        # Check if the post request has the file part
         if 'file' not in request.files:
             flash('No file part')
             return redirect(request.url)
         file = request.files['file']
-        # If user does not select file, browser also
-        # submit an empty part without filename
         if file.filename == '':
             flash('No selected file')
             return redirect(request.url)
@@ -45,24 +42,26 @@ def upload_file():
             filepath = os.path.join(app.config['UPLOAD_FOLDER'], filename)
             file.save(filepath)
             
-            # Process the image
-            processor = ImageProcessor(config['google_api_key'],
-                                       config['google_application_credentials_file_path'], 
-                                       app.config['UPLOAD_FOLDER'],
-                                       False)
+            processor = ImageProcessor(
+                api_key=config['google_api_key'],
+                cred_path=config['google_application_credentials_file_path'],
+                image_dir=app.config['UPLOAD_FOLDER'],
+                prompt_for_confirmation=False
+            )
             try:
                 result = processor.process_single_image(filepath)
-                
-                # Add the image URL to the result
                 result['image_url'] = url_for('serve_upload', filename=filename)
-                
                 return render_template('result.html', result=result)
             except Exception as e:
                 error_message = f"Error processing image: {str(e)}"
-                print(error_message)  # Log the error
+                app.logger.error(error_message)
                 flash(error_message)
                 return render_template('upload.html', error=error_message)
     return render_template('upload.html')
+
+@app.errorhandler(413)
+def too_large(e):
+    return "File is too large", 413
 
 if __name__ == '__main__':
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
