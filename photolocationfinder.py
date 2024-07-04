@@ -2,10 +2,12 @@ import asyncio
 import os
 import json
 from pathlib import Path
+import time
 
 import aiohttp
 from google.cloud import vision_v1
 from google.cloud.vision_v1.types import Feature
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 class ImageProcessor:
     def __init__(self, api_key, cred_path, image_dir, prompt_for_confirmation):
@@ -20,6 +22,7 @@ class ImageProcessor:
         if self.client is None:
             self.client = vision_v1.ImageAnnotatorClient()
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def process_image(self, image_path: str):
         """Processes a single image using the given client."""
         try:
@@ -30,7 +33,9 @@ class ImageProcessor:
             features = [
                 Feature(type=Feature.Type.LANDMARK_DETECTION),
                 Feature(type=Feature.Type.LABEL_DETECTION),
-                Feature(type=Feature.Type.WEB_DETECTION)
+                Feature(type=Feature.Type.WEB_DETECTION),
+                Feature(type=Feature.Type.IMAGE_PROPERTIES),
+                Feature(type=Feature.Type.SAFE_SEARCH_DETECTION)
             ]
             response = self.client.annotate_image({
                 'image': image,
@@ -40,7 +45,14 @@ class ImageProcessor:
             if response.error.message:
                 raise Exception(f"[VISION API ERROR] - {response.error.message}")
 
-            result_data = {"filename": image_path, "landmarks": [], "labels": [], "web_entities": []}
+            result_data = {
+                "filename": image_path,
+                "landmarks": [],
+                "labels": [],
+                "web_entities": [],
+                "dominant_colors": [],
+                "safe_search": {}
+            }
 
             landmarks = response.landmark_annotations
             if landmarks:
@@ -61,14 +73,36 @@ class ImageProcessor:
             labels = response.label_annotations
             if labels:
                 for label in labels:
-                    result_data["labels"].append({"label": label.description})
+                    result_data["labels"].append({"label": label.description, "score": label.score})
 
             web_entities = response.web_detection.web_entities
             if web_entities:
                 for entity in web_entities:
                     result_data["web_entities"].append({"entity": entity.description, "score": entity.score})
 
+            # Add dominant colors
+            colors = response.image_properties_annotation.dominant_colors.colors
+            for color in colors[:5]:  # Get top 5 dominant colors
+                result_data["dominant_colors"].append({
+                    "red": color.color.red,
+                    "green": color.color.green,
+                    "blue": color.color.blue,
+                    "score": color.score,
+                    "pixel_fraction": color.pixel_fraction
+                })
+
+            # Add safe search annotation
+            safe_search = response.safe_search_annotation
+            result_data["safe_search"] = {
+                "adult": safe_search.adult,
+                "medical": safe_search.medical,
+                "spoofed": safe_search.spoof,
+                "violence": safe_search.violence,
+                "racy": safe_search.racy
+            }
+
             print(f"[INFO]: Successfully processed image '{image_path}'")
+            await self.save_intermediate_result(result_data)
             return result_data
 
         except FileNotFoundError as f:
@@ -76,6 +110,7 @@ class ImageProcessor:
         except Exception as e:
             raise Exception(f"[PROCESSING ERROR][Image '{image_path}']: {e}")
 
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def get_location_from_google_maps_api(self, object_labels: list[str]):
         """Uses Google Maps API to get the approximate location of the landmark based on its appearance."""
         query = " ".join(object_labels)
@@ -95,6 +130,13 @@ class ImageProcessor:
         for ext in extensions:
             files.extend(Path(self.image_dir).glob(f"*.{ext}"))
         return files
+
+    async def save_intermediate_result(self, result_data):
+        """Saves intermediate results to a JSON file."""
+        intermediate_file = Path(f'intermediate_results_{int(time.time())}.json')
+        with intermediate_file.open("w") as f:
+            json.dump(result_data, f, indent=4)
+        print(f"Intermediate result saved to '{intermediate_file.absolute()}'.")
 
     async def detect_objects_in_images(self):
         await self.initialize_client()
