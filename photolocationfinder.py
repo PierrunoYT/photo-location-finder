@@ -10,6 +10,7 @@ import aiohttp
 from google.cloud import vision
 from google.cloud.vision_v1 import types
 from tenacity import retry, stop_after_attempt, wait_exponential
+from urllib.parse import quote
 
 class ImageProcessor:
     def __init__(self, api_key, cred_path, image_dir, prompt_for_confirmation):
@@ -65,6 +66,10 @@ class ImageProcessor:
             if gps_info:
                 result_data["gps_location"] = gps_info
                 print(f"[INFO]: GPS data found in EXIF for '{image_path}'")
+                # Reverse geocode the GPS coordinates
+                address = await self.reverse_geocode(gps_info["latitude"], gps_info["longitude"])
+                if address:
+                    result_data["address"] = address
             else:
                 landmarks = response.landmark_annotations
                 if landmarks:
@@ -80,12 +85,20 @@ class ImageProcessor:
                             "lat": result_data["landmarks"][0]["latitude"],
                             "lng": result_data["landmarks"][0]["longitude"]
                         }
+                        # Reverse geocode the landmark coordinates
+                        address = await self.reverse_geocode(result_data["location"]["lat"], result_data["location"]["lng"])
+                        if address:
+                            result_data["address"] = address
                 else:
-                    # If no landmarks were detected, try reverse geocoding based on object labels
+                    # If no landmarks were detected, try geocoding based on object labels
                     object_labels = [label.description.lower() for label in response.label_annotations[:3]]
                     location = await self.get_location_from_google_maps_api(object_labels)
                     if location:
                         result_data["location"] = location
+                        # Reverse geocode the estimated location
+                        address = await self.reverse_geocode(location["lat"], location["lng"])
+                        if address:
+                            result_data["address"] = address
 
             labels = response.label_annotations
             if labels:
@@ -129,16 +142,29 @@ class ImageProcessor:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def get_location_from_google_maps_api(self, object_labels: list[str]):
-        """Uses Google Maps API to get the approximate location of the landmark based on its appearance."""
+        """Uses Google Maps Geocoding API to get the approximate location based on object labels."""
         query = " ".join(object_labels)
-        url = f"https://maps.googleapis.com/maps/api/place/findplacefromtext/json?input={query}&inputtype=textquery&fields=geometry&key={self.api_key}"
+        encoded_query = quote(query)
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?address={encoded_query}&key={self.api_key}"
         async with aiohttp.ClientSession() as session:
             async with session.get(url) as response:
                 if response.ok:
                     data = await response.json()
-                    if data.get("candidates"):
-                        location = data["candidates"][0]["geometry"]["location"]
+                    if data.get("results"):
+                        location = data["results"][0]["geometry"]["location"]
                         return location
+        return None
+
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    async def reverse_geocode(self, lat: float, lng: float):
+        """Uses Google Maps Geocoding API to get the address from coordinates."""
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={self.api_key}"
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url) as response:
+                if response.ok:
+                    data = await response.json()
+                    if data.get("results"):
+                        return data["results"][0]["formatted_address"]
         return None
 
     def get_files_by_extension(self, extensions: list[str]):
