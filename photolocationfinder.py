@@ -7,8 +7,8 @@ from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
 
 import aiohttp
-from google.cloud import vision_v1
-from google.cloud.vision_v1.types import Feature
+from google.cloud import vision
+from google.cloud.vision_v1 import types
 from tenacity import retry, stop_after_attempt, wait_exponential
 
 class ImageProcessor:
@@ -22,7 +22,7 @@ class ImageProcessor:
 
     def initialize_client(self):
         if self.client is None:
-            self.client = vision_v1.ImageAnnotatorClient()
+            self.client = vision.ImageAnnotatorClient()
 
     async def initialize_client_async(self):
         if self.client is None:
@@ -35,13 +35,13 @@ class ImageProcessor:
             with open(image_path, 'rb') as image_file:
                 content = image_file.read()
 
-            image = vision_v1.Image(content=content)
+            image = vision.Image(content=content)
             features = [
-                Feature(type=Feature.Type.LANDMARK_DETECTION),
-                Feature(type=Feature.Type.LABEL_DETECTION),
-                Feature(type=Feature.Type.WEB_DETECTION),
-                Feature(type=Feature.Type.IMAGE_PROPERTIES),
-                Feature(type=Feature.Type.SAFE_SEARCH_DETECTION)
+                types.Feature(type=types.Feature.Type.LANDMARK_DETECTION),
+                types.Feature(type=types.Feature.Type.LABEL_DETECTION),
+                types.Feature(type=types.Feature.Type.WEB_DETECTION),
+                types.Feature(type=types.Feature.Type.IMAGE_PROPERTIES),
+                types.Feature(type=types.Feature.Type.SAFE_SEARCH_DETECTION)
             ]
             response = self.client.annotate_image({
                 'image': image,
