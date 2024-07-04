@@ -66,6 +66,9 @@ class ImageProcessor:
                 }
             except Exception as vision_error:
                 print(f"Error calling Vision API: {vision_error}")
+                print(f"Image path: {image_path}")
+                print(f"Image size: {len(content)} bytes")
+                print(f"Features requested: {features}")
                 raise Exception(f"[VISION API ERROR] - {str(vision_error)}")
 
             # Try to get GPS data from EXIF

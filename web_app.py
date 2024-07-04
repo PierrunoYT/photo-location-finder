@@ -58,8 +58,10 @@ def upload_file():
                 
                 return render_template('result.html', result=result)
             except Exception as e:
-                flash(f"Error processing image: {str(e)}")
-                return redirect(url_for('upload_file'))
+                error_message = f"Error processing image: {str(e)}"
+                print(error_message)  # Log the error
+                flash(error_message)
+                return render_template('upload.html', error=error_message)
     return render_template('upload.html')
 
 if __name__ == '__main__':
