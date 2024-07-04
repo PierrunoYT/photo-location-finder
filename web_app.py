@@ -28,7 +28,7 @@ def serve_upload(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/', methods=['GET', 'POST'])
-def upload_file():
+async def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file part')
@@ -49,7 +49,7 @@ def upload_file():
                 prompt_for_confirmation=False
             )
             try:
-                result = processor.process_single_image(filepath)
+                result = await asyncio.to_thread(processor.process_single_image, filepath)
                 result['image_url'] = url_for('serve_upload', filename=filename)
                 return render_template('result.html', result=result)
             except Exception as e:
