@@ -3,6 +3,8 @@ import os
 import json
 from pathlib import Path
 import time
+from PIL import Image
+from PIL.ExifTags import TAGS, GPSTAGS
 
 import aiohttp
 from google.cloud import vision_v1
@@ -54,21 +56,27 @@ class ImageProcessor:
                 "safe_search": {}
             }
 
-            landmarks = response.landmark_annotations
-            if landmarks:
-                for landmark in landmarks:
-                    result_data["landmarks"].append({
-                        "name": landmark.description,
-                        "latitude": landmark.locations[0].lat_lng.latitude,
-                        "longitude": landmark.locations[0].lat_lng.longitude,
-                        "confidence": landmark.score
-                    })
+            # Try to get GPS data from EXIF
+            gps_info = self.get_gps_from_exif(image_path)
+            if gps_info:
+                result_data["gps_location"] = gps_info
+                print(f"[INFO]: GPS data found in EXIF for '{image_path}'")
             else:
-                # If no landmarks were detected, try reverse geocoding based on object labels
-                object_labels = [label.description.lower() for label in response.label_annotations[:3]]
-                location = await self.get_location_from_google_maps_api(object_labels)
-                if location:
-                    result_data["location"] = location
+                landmarks = response.landmark_annotations
+                if landmarks:
+                    for landmark in landmarks:
+                        result_data["landmarks"].append({
+                            "name": landmark.description,
+                            "latitude": landmark.locations[0].lat_lng.latitude,
+                            "longitude": landmark.locations[0].lat_lng.longitude,
+                            "confidence": landmark.score
+                        })
+                else:
+                    # If no landmarks were detected, try reverse geocoding based on object labels
+                    object_labels = [label.description.lower() for label in response.label_annotations[:3]]
+                    location = await self.get_location_from_google_maps_api(object_labels)
+                    if location:
+                        result_data["location"] = location
 
             labels = response.label_annotations
             if labels:
@@ -137,6 +145,26 @@ class ImageProcessor:
         with intermediate_file.open("w") as f:
             json.dump(result_data, f, indent=4)
         print(f"Intermediate result saved to '{intermediate_file.absolute()}'.")
+
+    def get_gps_from_exif(self, image_path):
+        """Extracts GPS coordinates from image EXIF data if available."""
+        try:
+            with Image.open(image_path) as img:
+                exif = {TAGS[k]: v for k, v in img._getexif().items() if k in TAGS}
+                if 'GPSInfo' in exif:
+                    gps_info = {GPSTAGS[k]: v for k, v in exif['GPSInfo'].items() if k in GPSTAGS}
+                    lat = gps_info['GPSLatitude']
+                    lon = gps_info['GPSLongitude']
+                    lat_ref = gps_info['GPSLatitudeRef']
+                    lon_ref = gps_info['GPSLongitudeRef']
+                    
+                    lat = (lat[0] + lat[1]/60 + lat[2]/3600) * (-1 if lat_ref == 'S' else 1)
+                    lon = (lon[0] + lon[1]/60 + lon[2]/3600) * (-1 if lon_ref == 'W' else 1)
+                    
+                    return {"latitude": lat, "longitude": lon}
+        except Exception as e:
+            print(f"Error extracting EXIF data from {image_path}: {e}")
+        return None
 
     async def detect_objects_in_images(self):
         await self.initialize_client()
