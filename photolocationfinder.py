@@ -72,7 +72,16 @@ class ImageProcessor:
                 if address:
                     print(f"Address found: {address}")
                     result_data["address"] = address
-            elif not result_data.get("landmarks"):
+            elif result_data.get("landmarks"):
+                print(f"Landmarks found: {result_data['landmarks']}")
+                landmark = result_data["landmarks"][0]
+                result_data["location"] = {"lat": landmark["latitude"], "lng": landmark["longitude"]}
+                print("Reverse geocoding landmark coordinates...")
+                address = await self.reverse_geocode(landmark["latitude"], landmark["longitude"])
+                if address:
+                    print(f"Address found: {address}")
+                    result_data["address"] = address
+            else:
                 print("No GPS data or landmarks found. Attempting to get location from text...")
                 location = await self.get_location_from_text(text_coordinates)
                 if location:
@@ -96,8 +105,6 @@ class ImageProcessor:
                             result_data["address"] = address
                     else:
                         print("No location found from Google Maps API")
-            else:
-                print(f"Landmarks found: {result_data['landmarks']}")
 
             print("Saving intermediate result...")
             await self.save_intermediate_result(result_data)
