@@ -271,7 +271,7 @@ class ImageProcessor:
                     }
         return None
 
-    @retry(stop=after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def get_place_details(self, place_id: str):
         url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,rating,formatted_phone_number&key={self.api_key}"
         async with self.session.get(url) as response:
@@ -286,7 +286,7 @@ class ImageProcessor:
                     }
         return None
 
-    @retry(stop=after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def get_street_view(self, lat: float, lng: float):
         url = f"https://maps.googleapis.com/maps/api/streetview?size=600x300&location={lat},{lng}&key={self.api_key}"
         async with self.session.get(url) as response:
