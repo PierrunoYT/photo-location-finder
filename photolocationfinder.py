@@ -166,29 +166,16 @@ class ImageProcessor:
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def reverse_geocode(self, lat: float, lng: float):
-        url = f"https://places.googleapis.com/v1/places:searchNearby"
-        headers = {
-            "Content-Type": "application/json",
-            "X-Goog-Api-Key": self.api_key,
-            "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.types"
-        }
-        data = json.dumps({
-            "locationRestriction": {
-                "circle": {
-                    "center": {"latitude": lat, "longitude": lng},
-                    "radius": 1.0
-                }
-            }
-        })
-        async with self.session.post(url, headers=headers, data=data) as response:
+        url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={self.api_key}"
+        async with self.session.get(url) as response:
             if response.status == 200:
                 data = await response.json()
-                if data.get("places"):
-                    place = data["places"][0]
+                if data["status"] == "OK" and data["results"]:
+                    result = data["results"][0]
                     return {
-                        "name": place["displayName"]["text"],
-                        "address": place["formattedAddress"],
-                        "types": place.get("types", [])
+                        "address": result["formatted_address"],
+                        "types": result["types"],
+                        "place_id": result["place_id"]
                     }
         return None
 
