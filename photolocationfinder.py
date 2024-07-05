@@ -44,7 +44,7 @@ class ImageProcessor:
             ]
 
             request = types.AnnotateImageRequest(image=image, features=features)
-            response = await self.client.annotate_image(request)
+            response = await self.client.annotate_image_async(request=request)
 
             if response.error.message:
                 raise Exception(f"[VISION API ERROR] - {response.error.message}")
