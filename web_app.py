@@ -8,8 +8,15 @@ from photolocationfinder import ImageProcessor
 app = Flask(__name__, static_folder='static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'fallback_secret_key')
 
-with open('config.json', 'r') as config_file:
-    config = json.load(config_file)
+try:
+    with open('config.json', 'r') as config_file:
+        config = json.load(config_file)
+except FileNotFoundError:
+    print("Error: config.json file not found. Please make sure it exists in the current directory.")
+    exit(1)
+except json.JSONDecodeError:
+    print("Error: config.json file is not valid JSON. Please check its contents.")
+    exit(1)
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
@@ -29,7 +36,7 @@ def serve_upload(filename):
     return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
 
 @app.route('/', methods=['GET', 'POST'])
-async def upload_file():
+def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
             flash('No file part')
@@ -50,7 +57,7 @@ async def upload_file():
                 prompt_for_confirmation=False
             )
             try:
-                result = await asyncio.to_thread(processor.process_single_image, filepath)
+                result = processor.process_single_image(filepath)
                 result['image_url'] = url_for('serve_upload', filename=filename)
                 return render_template('result.html', result=result)
             except Exception as e:

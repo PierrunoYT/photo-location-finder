@@ -374,7 +374,8 @@ class ImageProcessor:
     async def _process_single_image(self, image_path):
         await self.initialize()
         result = await self.process_image(image_path)
-        await self.session.close()
+        if self.session:
+            await self.session.close()
         return result
 
 if __name__ == "__main__":
