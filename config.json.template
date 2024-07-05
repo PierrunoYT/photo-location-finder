@@ -1,7 +1,5 @@
 {
     "google_api_key": "YOUR_GOOGLE_API_KEY_HERE",
     "google_application_credentials_file_path": "PATH_TO_YOUR_GOOGLE_APPLICATION_CREDENTIALS_FILE",
-    "image_directory_path": "PATH_TO_YOUR_IMAGE_DIRECTORY",
-    "database_url": "YOUR_DATABASE_URL_HERE",
-    "secret_key": "YOUR_SECRET_KEY_HERE"
+    "image_directory_path": "PATH_TO_YOUR_IMAGE_DIRECTORY"
 }
