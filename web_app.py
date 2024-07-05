@@ -8,15 +8,37 @@ from photolocationfinder import ImageProcessor
 app = Flask(__name__, static_folder='static')
 app.secret_key = os.environ.get('FLASK_SECRET_KEY', 'fallback_secret_key')
 
+import shutil
+
+config_template_path = 'config.json.template'
+config_path = 'config.json'
+
+if not os.path.exists(config_path):
+    if os.path.exists(config_template_path):
+        shutil.copy(config_template_path, config_path)
+        print(f"Created {config_path} from {config_template_path}. Please edit it with your actual configuration.")
+    else:
+        print(f"Error: Neither {config_path} nor {config_template_path} found. Please create a {config_path} file.")
+        exit(1)
+
 try:
-    with open('config.json', 'r') as config_file:
+    with open(config_path, 'r') as config_file:
         config = json.load(config_file)
-except FileNotFoundError:
-    print("Error: config.json file not found. Please make sure it exists in the current directory.")
-    exit(1)
 except json.JSONDecodeError:
-    print("Error: config.json file is not valid JSON. Please check its contents.")
+    print(f"Error: {config_path} file is not valid JSON. Please check its contents.")
     exit(1)
+
+# Check if any config values are placeholder values
+placeholder_values = [
+    "YOUR_GOOGLE_API_KEY_HERE",
+    "PATH_TO_YOUR_GOOGLE_APPLICATION_CREDENTIALS_FILE",
+    "PATH_TO_YOUR_IMAGE_DIRECTORY",
+    "YOUR_DATABASE_URL_HERE",
+    "YOUR_SECRET_KEY_HERE"
+]
+
+if any(value in config.values() for value in placeholder_values):
+    print(f"Warning: {config_path} contains placeholder values. Please edit it with your actual configuration.")
 
 UPLOAD_FOLDER = 'uploads'
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif'}
