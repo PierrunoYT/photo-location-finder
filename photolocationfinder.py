@@ -93,10 +93,10 @@ class ImageProcessor:
                         print(f"Address found: {address}")
                         result_data["address"] = address
                 else:
-                    print("No location found from text. Attempting to get location from Google Maps API...")
+                    print("No location found from text. Attempting to get location from Google Maps API using labels...")
                     location = await self.get_location_from_google_maps_api(result_data["labels"][:3])
                     if location:
-                        print(f"Location found from Google Maps API: {location}")
+                        print(f"Location found from Google Maps API using labels: {location}")
                         result_data["location"] = location
                         print("Reverse geocoding location...")
                         address = await self.reverse_geocode(location["lat"], location["lng"])
@@ -104,7 +104,19 @@ class ImageProcessor:
                             print(f"Address found: {address}")
                             result_data["address"] = address
                     else:
-                        print("No location found from Google Maps API")
+                        print("No location found from Google Maps API using labels. Attempting with web entities...")
+                        web_entities = [{"label": entity["entity"]} for entity in result_data["web_entities"][:3]]
+                        location = await self.get_location_from_google_maps_api(web_entities)
+                        if location:
+                            print(f"Location found from Google Maps API using web entities: {location}")
+                            result_data["location"] = location
+                            print("Reverse geocoding location...")
+                            address = await self.reverse_geocode(location["lat"], location["lng"])
+                            if address:
+                                print(f"Address found: {address}")
+                                result_data["address"] = address
+                        else:
+                            print("No location found from any method")
 
             print("Saving intermediate result...")
             await self.save_intermediate_result(result_data)

@@ -12,17 +12,25 @@
     
     <h2>Location</h2>
     {% if result.get('gps_location') %}
+        <p>GPS Location:</p>
         <p>Latitude: {{ result.gps_location.latitude }}</p>
         <p>Longitude: {{ result.gps_location.longitude }}</p>
     {% elif result.get('landmarks') %}
-        <p>Landmark: {{ result.landmarks[0].name }}</p>
+        <p>Landmark:</p>
+        <p>Name: {{ result.landmarks[0].name }}</p>
         <p>Latitude: {{ result.landmarks[0].latitude }}</p>
         <p>Longitude: {{ result.landmarks[0].longitude }}</p>
     {% elif result.get('location') %}
+        <p>Derived Location:</p>
         <p>Latitude: {{ result.location.lat }}</p>
         <p>Longitude: {{ result.location.lng }}</p>
     {% else %}
         <p>No location information available.</p>
+    {% endif %}
+    
+    {% if result.get('address') %}
+        <h3>Address</h3>
+        <p>{{ result.address.address }}</p>
     {% endif %}
     
     <h2>Full Results</h2>
