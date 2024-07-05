@@ -130,9 +130,9 @@ class ImageProcessor:
             "X-Goog-Api-Key": self.api_key,
             "X-Goog-FieldMask": "places.displayName,places.formattedAddress,places.location,places.types"
         }
-        data = {"textQuery": encoded_query}
-        async with self.session.post(url, headers=headers, json=data) as response:
-            if response.ok:
+        data = json.dumps({"textQuery": encoded_query})
+        async with self.session.post(url, headers=headers, data=data) as response:
+            if response.status == 200:
                 data = await response.json()
                 if data.get("places"):
                     place = data["places"][0]
@@ -153,16 +153,16 @@ class ImageProcessor:
             "X-Goog-Api-Key": self.api_key,
             "X-Goog-FieldMask": "places.id,places.displayName,places.formattedAddress,places.types"
         }
-        data = {
+        data = json.dumps({
             "locationRestriction": {
                 "circle": {
                     "center": {"latitude": lat, "longitude": lng},
                     "radius": 1.0
                 }
             }
-        }
-        async with self.session.post(url, headers=headers, json=data) as response:
-            if response.ok:
+        })
+        async with self.session.post(url, headers=headers, data=data) as response:
+            if response.status == 200:
                 data = await response.json()
                 if data.get("places"):
                     place = data["places"][0]
