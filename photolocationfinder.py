@@ -24,7 +24,7 @@ class ImageProcessor:
 
     async def initialize(self):
         if self.client is None:
-            self.client = vision.ImageAnnotatorAsyncClient()
+            self.client = vision.ImageAnnotatorClient()
         if self.session is None:
             self.session = aiohttp.ClientSession()
 
@@ -46,7 +46,7 @@ class ImageProcessor:
 
             request = types.AnnotateImageRequest(image=image, features=features)
             print("Sending request to Google Vision API...")
-            response = await self.client.annotate_image_async(request=request)
+            response = self.client.annotate_image(request=request)
             print("Received response from Google Vision API")
 
             if response.error.message:
