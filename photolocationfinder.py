@@ -175,51 +175,56 @@ class ImageProcessor:
             "objects": []
         }
 
-        if response.landmark_annotations:
-            for landmark in response.landmark_annotations:
-                if landmark.locations and landmark.locations[0].lat_lng:
-                    result_data["landmarks"].append({
-                        "name": landmark.description,
-                        "latitude": landmark.locations[0].lat_lng.latitude,
-                        "longitude": landmark.locations[0].lat_lng.longitude,
-                        "confidence": landmark.score
-                    })
-            if result_data["landmarks"]:
-                result_data["location"] = {
-                    "lat": result_data["landmarks"][0]["latitude"],
-                    "lng": result_data["landmarks"][0]["longitude"]
-                }
+        try:
+            if response.landmark_annotations:
+                for landmark in response.landmark_annotations:
+                    if landmark.locations and landmark.locations[0].lat_lng:
+                        result_data["landmarks"].append({
+                            "name": landmark.description,
+                            "latitude": landmark.locations[0].lat_lng.latitude,
+                            "longitude": landmark.locations[0].lat_lng.longitude,
+                            "confidence": float(landmark.score)
+                        })
+                if result_data["landmarks"]:
+                    result_data["location"] = {
+                        "lat": result_data["landmarks"][0]["latitude"],
+                        "lng": result_data["landmarks"][0]["longitude"]
+                    }
 
-        result_data["labels"] = [{"label": label.description, "score": label.score} for label in response.label_annotations]
-        result_data["web_entities"] = [{"entity": entity.description, "score": entity.score} for entity in response.web_detection.web_entities]
+            result_data["labels"] = [{"label": label.description, "score": float(label.score)} for label in response.label_annotations]
+            result_data["web_entities"] = [{"entity": entity.description, "score": float(entity.score)} for entity in response.web_detection.web_entities]
 
-        colors = response.image_properties_annotation.dominant_colors.colors
-        result_data["dominant_colors"] = [{
-            "red": color.color.red,
-            "green": color.color.green,
-            "blue": color.color.blue,
-            "score": color.score,
-            "pixel_fraction": color.pixel_fraction
-        } for color in colors[:5]]
+            colors = response.image_properties_annotation.dominant_colors.colors
+            result_data["dominant_colors"] = [{
+                "red": color.color.red,
+                "green": color.color.green,
+                "blue": color.color.blue,
+                "score": float(color.score),
+                "pixel_fraction": float(color.pixel_fraction)
+            } for color in colors[:5]]
 
-        safe_search = response.safe_search_annotation
-        result_data["safe_search"] = {
-            "adult": safe_search.adult,
-            "medical": safe_search.medical,
-            "spoofed": safe_search.spoof,
-            "violence": safe_search.violence,
-            "racy": safe_search.racy
-        }
+            safe_search = response.safe_search_annotation
+            result_data["safe_search"] = {
+                "adult": safe_search.adult.name,
+                "medical": safe_search.medical.name,
+                "spoofed": safe_search.spoof.name,
+                "violence": safe_search.violence.name,
+                "racy": safe_search.racy.name
+            }
 
-        for object_annotation in response.localized_object_annotations:
-            result_data["objects"].append({
-                "name": object_annotation.name,
-                "score": object_annotation.score,
-                "bounding_poly": [
-                    {"x": vertex.x, "y": vertex.y}
-                    for vertex in object_annotation.bounding_poly.normalized_vertices
-                ]
-            })
+            for object_annotation in response.localized_object_annotations:
+                result_data["objects"].append({
+                    "name": object_annotation.name,
+                    "score": float(object_annotation.score),
+                    "bounding_poly": [
+                        {"x": float(vertex.x), "y": float(vertex.y)}
+                        for vertex in object_annotation.bounding_poly.normalized_vertices
+                    ]
+                })
+
+        except Exception as e:
+            print(f"Error extracting data from response: {str(e)}")
+            result_data["error"] = str(e)
 
         return result_data
 
@@ -312,8 +317,11 @@ class ImageProcessor:
                     lat_ref = gps_info['GPSLatitudeRef']
                     lon_ref = gps_info['GPSLongitudeRef']
                     
-                    lat = (lat[0] + lat[1]/60 + lat[2]/3600) * (-1 if lat_ref == 'S' else 1)
-                    lon = (lon[0] + lon[1]/60 + lon[2]/3600) * (-1 if lon_ref == 'W' else 1)
+                    def convert_to_degrees(value):
+                        return float(value[0]) + float(value[1]) / 60 + float(value[2]) / 3600
+
+                    lat = convert_to_degrees(lat) * (-1 if lat_ref == 'S' else 1)
+                    lon = convert_to_degrees(lon) * (-1 if lon_ref == 'W' else 1)
                     
                     return {"latitude": lat, "longitude": lon}
         except Exception as e:
