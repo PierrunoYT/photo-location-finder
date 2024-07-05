@@ -41,7 +41,8 @@ class ImageProcessor:
                 types.Feature(type=types.Feature.Type.LABEL_DETECTION),
                 types.Feature(type=types.Feature.Type.WEB_DETECTION),
                 types.Feature(type=types.Feature.Type.IMAGE_PROPERTIES),
-                types.Feature(type=types.Feature.Type.SAFE_SEARCH_DETECTION)
+                types.Feature(type=types.Feature.Type.SAFE_SEARCH_DETECTION),
+                types.Feature(type=types.Feature.Type.DOCUMENT_TEXT_DETECTION)
             ]
 
             request = types.AnnotateImageRequest(image=image, features=features)
@@ -55,6 +56,11 @@ class ImageProcessor:
             print("Extracting data from response...")
             result_data = self.extract_data_from_response(response, image_path)
             print("Data extraction complete")
+
+            print("Extracting text coordinates...")
+            text_coordinates = self.extract_text_coordinates(response)
+            result_data["text_coordinates"] = text_coordinates
+            print("Text coordinate extraction complete")
 
             print("Checking for GPS data in EXIF...")
             gps_info = self.get_gps_from_exif(image_path)
@@ -206,6 +212,20 @@ class ImageProcessor:
         except Exception as e:
             print(f"Error extracting EXIF data from {image_path}: {e}")
         return None
+
+    def extract_text_coordinates(self, response):
+        coordinates = []
+        for page in response.full_text_annotation.pages:
+            for block in page.blocks:
+                for paragraph in block.paragraphs:
+                    for word in paragraph.words:
+                        box = word.bounding_box
+                        coords = [(vertex.x, vertex.y) for vertex in box.vertices]
+                        coordinates.append({
+                            'text': ''.join([symbol.text for symbol in word.symbols]),
+                            'coords': coords
+                        })
+        return coordinates
 
     async def process_images(self):
         await self.initialize()
