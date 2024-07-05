@@ -56,21 +56,35 @@ class ImageProcessor:
             result_data = self.extract_data_from_response(response, image_path)
             print("Data extraction complete")
 
+            print("Checking for GPS data in EXIF...")
             gps_info = self.get_gps_from_exif(image_path)
             if gps_info:
+                print(f"GPS data found: {gps_info}")
                 result_data["gps_location"] = gps_info
+                print("Reverse geocoding GPS coordinates...")
                 address = await self.reverse_geocode(gps_info["latitude"], gps_info["longitude"])
                 if address:
+                    print(f"Address found: {address}")
                     result_data["address"] = address
             elif not result_data.get("landmarks"):
+                print("No GPS data or landmarks found. Attempting to get location from Google Maps API...")
                 location = await self.get_location_from_google_maps_api(result_data["labels"][:3])
                 if location:
+                    print(f"Location found from Google Maps API: {location}")
                     result_data["location"] = location
+                    print("Reverse geocoding location...")
                     address = await self.reverse_geocode(location["lat"], location["lng"])
                     if address:
+                        print(f"Address found: {address}")
                         result_data["address"] = address
+                else:
+                    print("No location found from Google Maps API")
+            else:
+                print(f"Landmarks found: {result_data['landmarks']}")
 
+            print("Saving intermediate result...")
             await self.save_intermediate_result(result_data)
+            print("Processing complete")
             return result_data
 
         except Exception as e:
