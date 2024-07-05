@@ -73,10 +73,10 @@ class ImageProcessor:
                     print(f"Address found: {address}")
                     result_data["address"] = address
             elif not result_data.get("landmarks"):
-                print("No GPS data or landmarks found. Attempting to get location from Google Maps API...")
-                location = await self.get_location_from_google_maps_api(result_data["labels"][:3])
+                print("No GPS data or landmarks found. Attempting to get location from text...")
+                location = await self.get_location_from_text(text_coordinates)
                 if location:
-                    print(f"Location found from Google Maps API: {location}")
+                    print(f"Location found from text: {location}")
                     result_data["location"] = location
                     print("Reverse geocoding location...")
                     address = await self.reverse_geocode(location["lat"], location["lng"])
@@ -84,7 +84,18 @@ class ImageProcessor:
                         print(f"Address found: {address}")
                         result_data["address"] = address
                 else:
-                    print("No location found from Google Maps API")
+                    print("No location found from text. Attempting to get location from Google Maps API...")
+                    location = await self.get_location_from_google_maps_api(result_data["labels"][:3])
+                    if location:
+                        print(f"Location found from Google Maps API: {location}")
+                        result_data["location"] = location
+                        print("Reverse geocoding location...")
+                        address = await self.reverse_geocode(location["lat"], location["lng"])
+                        if address:
+                            print(f"Address found: {address}")
+                            result_data["address"] = address
+                    else:
+                        print("No location found from Google Maps API")
             else:
                 print(f"Landmarks found: {result_data['landmarks']}")
 
@@ -96,6 +107,10 @@ class ImageProcessor:
         except Exception as e:
             print(f"[PROCESSING ERROR][Image '{image_path}']: {str(e)}")
             return {"error": str(e), "filename": image_path}
+
+    async def get_location_from_text(self, text_coordinates):
+        location_text = " ".join([item["text"] for item in text_coordinates])
+        return await self.get_location_from_google_maps_api([{"label": location_text}])
 
     def extract_data_from_response(self, response, image_path):
         result_data = {
@@ -169,6 +184,10 @@ class ImageProcessor:
                         "types": place.get("types", [])
                     }
         return None
+
+    async def get_location_from_text(self, text_coordinates):
+        location_text = " ".join([item["text"] for item in text_coordinates])
+        return await self.get_location_from_google_maps_api([{"label": location_text}])
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def reverse_geocode(self, lat: float, lng: float):
