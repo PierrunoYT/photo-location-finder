@@ -29,9 +29,6 @@ class ImageProcessor:
             self.client = vision.ImageAnnotatorClient()
         if self.session is None:
             self.session = aiohttp.ClientSession()
-        if self.places_client is None:
-            from googleplaces import GooglePlaces
-            self.places_client = GooglePlaces(self.api_key)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def process_image(self, image_path: str):
