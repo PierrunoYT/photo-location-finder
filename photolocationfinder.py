@@ -5,6 +5,7 @@ from pathlib import Path
 import time
 from PIL import Image
 from PIL.ExifTags import TAGS, GPSTAGS
+import base64
 
 import aiohttp
 from google.cloud import vision
@@ -21,12 +22,16 @@ class ImageProcessor:
         os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.cred_path
         self.client = None
         self.session = None
+        self.places_client = None
 
     async def initialize(self):
         if self.client is None:
             self.client = vision.ImageAnnotatorClient()
         if self.session is None:
             self.session = aiohttp.ClientSession()
+        if self.places_client is None:
+            from googleplaces import GooglePlaces
+            self.places_client = GooglePlaces(self.api_key)
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def process_image(self, image_path: str):
@@ -42,7 +47,8 @@ class ImageProcessor:
                 types.Feature(type=types.Feature.Type.WEB_DETECTION),
                 types.Feature(type=types.Feature.Type.IMAGE_PROPERTIES),
                 types.Feature(type=types.Feature.Type.SAFE_SEARCH_DETECTION),
-                types.Feature(type=types.Feature.Type.DOCUMENT_TEXT_DETECTION)
+                types.Feature(type=types.Feature.Type.DOCUMENT_TEXT_DETECTION),
+                types.Feature(type=types.Feature.Type.OBJECT_LOCALIZATION)
             ]
 
             request = types.AnnotateImageRequest(image=image, features=features)
@@ -72,6 +78,12 @@ class ImageProcessor:
                 if address:
                     print(f"Address found: {address}")
                     result_data["address"] = address
+                    place_details = await self.get_place_details(address["place_id"])
+                    if place_details:
+                        result_data["place_details"] = place_details
+                    street_view = await self.get_street_view(gps_info["latitude"], gps_info["longitude"])
+                    if street_view:
+                        result_data["street_view"] = street_view
             elif result_data.get("landmarks"):
                 print(f"Landmarks found: {result_data['landmarks']}")
                 landmark = result_data["landmarks"][0]
@@ -81,6 +93,12 @@ class ImageProcessor:
                 if address:
                     print(f"Address found: {address}")
                     result_data["address"] = address
+                    place_details = await self.get_place_details(address["place_id"])
+                    if place_details:
+                        result_data["place_details"] = place_details
+                    street_view = await self.get_street_view(landmark["latitude"], landmark["longitude"])
+                    if street_view:
+                        result_data["street_view"] = street_view
             else:
                 print("No GPS data or landmarks found. Attempting to get location from text...")
                 location = await self.get_location_from_text(text_coordinates)
@@ -92,6 +110,12 @@ class ImageProcessor:
                     if address:
                         print(f"Address found: {address}")
                         result_data["address"] = address
+                        place_details = await self.get_place_details(address["place_id"])
+                        if place_details:
+                            result_data["place_details"] = place_details
+                        street_view = await self.get_street_view(location["lat"], location["lng"])
+                        if street_view:
+                            result_data["street_view"] = street_view
                 else:
                     print("No location found from text. Attempting to get location from Google Maps API using labels...")
                     location = await self.get_location_from_google_maps_api(result_data["labels"][:3])
@@ -103,6 +127,12 @@ class ImageProcessor:
                         if address:
                             print(f"Address found: {address}")
                             result_data["address"] = address
+                            place_details = await self.get_place_details(address["place_id"])
+                            if place_details:
+                                result_data["place_details"] = place_details
+                            street_view = await self.get_street_view(location["lat"], location["lng"])
+                            if street_view:
+                                result_data["street_view"] = street_view
                     else:
                         print("No location found from Google Maps API using labels. Attempting with web entities...")
                         web_entities = [{"label": entity["entity"]} for entity in result_data["web_entities"][:3]]
@@ -115,6 +145,12 @@ class ImageProcessor:
                             if address:
                                 print(f"Address found: {address}")
                                 result_data["address"] = address
+                                place_details = await self.get_place_details(address["place_id"])
+                                if place_details:
+                                    result_data["place_details"] = place_details
+                                street_view = await self.get_street_view(location["lat"], location["lng"])
+                                if street_view:
+                                    result_data["street_view"] = street_view
                         else:
                             print("No location found from any method")
 
@@ -138,7 +174,8 @@ class ImageProcessor:
             "labels": [],
             "web_entities": [],
             "dominant_colors": [],
-            "safe_search": {}
+            "safe_search": {},
+            "objects": []
         }
 
         if response.landmark_annotations:
@@ -177,6 +214,16 @@ class ImageProcessor:
             "racy": safe_search.racy
         }
 
+        for object_annotation in response.localized_object_annotations:
+            result_data["objects"].append({
+                "name": object_annotation.name,
+                "score": object_annotation.score,
+                "bounding_poly": [
+                    {"x": vertex.x, "y": vertex.y}
+                    for vertex in object_annotation.bounding_poly.normalized_vertices
+                ]
+            })
+
         return result_data
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
@@ -209,6 +256,7 @@ class ImageProcessor:
         return await self.get_location_from_google_maps_api([{"label": location_text}])
 
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    @retry(stop=after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def reverse_geocode(self, lat: float, lng: float):
         url = f"https://maps.googleapis.com/maps/api/geocode/json?latlng={lat},{lng}&key={self.api_key}"
         async with self.session.get(url) as response:
@@ -221,6 +269,30 @@ class ImageProcessor:
                         "types": result["types"],
                         "place_id": result["place_id"]
                     }
+        return None
+
+    @retry(stop=after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    async def get_place_details(self, place_id: str):
+        url = f"https://maps.googleapis.com/maps/api/place/details/json?place_id={place_id}&fields=name,rating,formatted_phone_number&key={self.api_key}"
+        async with self.session.get(url) as response:
+            if response.status == 200:
+                data = await response.json()
+                if data["status"] == "OK":
+                    result = data["result"]
+                    return {
+                        "name": result.get("name"),
+                        "rating": result.get("rating"),
+                        "phone": result.get("formatted_phone_number")
+                    }
+        return None
+
+    @retry(stop=after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
+    async def get_street_view(self, lat: float, lng: float):
+        url = f"https://maps.googleapis.com/maps/api/streetview?size=600x300&location={lat},{lng}&key={self.api_key}"
+        async with self.session.get(url) as response:
+            if response.status == 200:
+                image_data = await response.read()
+                return base64.b64encode(image_data).decode('utf-8')
         return None
 
     def get_files_by_extension(self, extensions: list[str]):
