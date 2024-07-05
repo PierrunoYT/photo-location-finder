@@ -31,6 +31,7 @@ class ImageProcessor:
     @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=4, max=10))
     async def process_image(self, image_path: str):
         try:
+            print(f"Processing image: {image_path}")
             with open(image_path, 'rb') as image_file:
                 content = image_file.read()
 
@@ -44,12 +45,16 @@ class ImageProcessor:
             ]
 
             request = types.AnnotateImageRequest(image=image, features=features)
+            print("Sending request to Google Vision API...")
             response = await self.client.annotate_image_async(request=request)
+            print("Received response from Google Vision API")
 
             if response.error.message:
                 raise Exception(f"[VISION API ERROR] - {response.error.message}")
 
+            print("Extracting data from response...")
             result_data = self.extract_data_from_response(response, image_path)
+            print("Data extraction complete")
 
             gps_info = self.get_gps_from_exif(image_path)
             if gps_info:
