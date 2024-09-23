@@ -1,84 +1,123 @@
-# Photo Location Finder
+# 📸 Photo Location Finder
 
-This Python application detects landmarks, labels, web entities, and other image properties in images using the Google Cloud Vision API. It provides both a command-line interface and a web interface for processing images and retrieving location information.
+Welcome to the **Photo Location Finder** project repository! This tool is designed to help you extract and identify the geographical location of the photos using EXIF data, Google Vision API, and Google Maps API.
 
-## Features
+---
 
-- Landmark detection
-- Label detection
-- Web entity detection
-- Image properties analysis (dominant colors)
-- Safe search detection
-- GPS data extraction from EXIF metadata
-- Geolocation using Google Maps API when landmark detection fails
-- Asynchronous processing for improved performance
-- Error handling and retries for API calls
-- Intermediate results saving
-- Web interface for easy image upload and result viewing
+## 🌟 Features
 
-## Prerequisites
+- **EXIF Data Extraction**: Extracts GPS coordinates from image metadata.
+- **Google Vision API Integration**: Detects landmarks, labels, web entities, and more from images.
+- **Reverse Geocoding**: Converts GPS coordinates into human-readable addresses using Google Maps API.
+- **Street View**: Provides a street view image of the location.
+- **Web Interface**: Allows users to upload and process images via a simple web interface.
 
-Before running the application, ensure that you have:
+---
 
-- Python 3.7 or later
-- A valid Google Cloud API key
-- Google Cloud credentials file
-- Google Maps API key
+## 📖 Introduction
 
-## Installation
+The Photo Location Finder is a Python-based application that leverages Google Cloud's Vision API to analyze images and extract location-based information. It is particularly useful for photographers, travelers, and researchers who need to organize or verify the locations where pictures were taken.
 
-1. Clone the repository:
+---
+
+## 📋 Requirements
+
+To run this project, ensure you have the following software and libraries installed:
+
+- Python 3.8 or higher
+- Google Cloud Vision API credentials
+- Required Python packages (see below for installation)
+
+**Python Packages**:
+- `google-auth==2.18.0`
+- `google-auth-oauthlib==0.4.2`
+- `google-auth-httplib2==0.1.0`
+- `google-api-python-client==2.86.0`
+- `google-cloud-vision==3.7.2`
+- `aiohttp==3.8.4`
+- `tenacity==8.2.2`
+- `Pillow==9.5.0`
+- `Flask==2.3.2`
+
+---
+
+## ⚙️ Installation
+
+1. **Clone the Repository**
+
+   ```bash
+   git clone https://github.com/PierrunoYT/photo-location-finder.git
+   cd photo-location-finder
    ```
-   git clone https://github.com/PierrunoYT/photo-location-finder
-   ```
 
-2. Navigate to the project directory and install the required packages:
-   ```
+2. **Install Dependencies**
+
+   Use the following command to install the required Python packages:
+
+   ```bash
    pip install -r requirements.txt
    ```
 
-3. Set up the configuration:
-   - Copy `config.json.template` to `config.json`
-   - Fill in your Google API key, Google Application Credentials file path, and other necessary information in `config.json`
+3. **Configure Google API Credentials**
 
-## Usage
+   Create a `config.json` file based on `config.json.template` and fill in your Google API credentials and other configurations.
 
-### Command Line Interface
-
-1. Ensure your images are in the directory specified in `config.json`.
-
-2. Run the script:
-   ```
-   python photolocationfinder.py
+   ```json
+   {
+     "google_api_key": "YOUR_GOOGLE_API_KEY_HERE",
+     "google_application_credentials_file_path": "PATH_TO_YOUR_GOOGLE_APPLICATION_CREDENTIALS_FILE",
+     "image_directory_path": "PATH_TO_YOUR_IMAGE_DIRECTORY"
+   }
    ```
 
-3. The script will process the images and generate:
-   - A `result.json` file with the final results
-   - `intermediate_results_[timestamp].json` files for each processed image
+---
 
-### Web Interface
+## 📜 License
 
-1. Start the web application:
-   ```
+This project is licensed under the **MIT License**. See the `LICENSE` file for more details.
+
+---
+
+## 🤝 Contributing
+
+Contributions are welcome! If you would like to contribute, please follow these steps:
+
+1. Fork the repository.
+2. Create a new branch (`git checkout -b feature/YourFeature`).
+3. Commit your changes (`git commit -m 'Add some feature'`).
+4. Push to the branch (`git push origin feature/YourFeature`).
+5. Open a Pull Request.
+
+---
+
+## 🔧 Configuration
+
+Ensure your `config.json` is set up with the correct paths and API keys. The template is as follows:
+
+```json
+{
+  "google_api_key": "YOUR_GOOGLE_API_KEY_HERE",
+  "google_application_credentials_file_path": "PATH_TO_YOUR_GOOGLE_APPLICATION_CREDENTIALS_FILE",
+  "image_directory_path": "PATH_TO_YOUR_IMAGE_DIRECTORY"
+}
+```
+
+---
+
+## 🚀 Usage
+
+1. **Start the Web Application**
+
+   Run the following command to start the Flask web application:
+
+   ```bash
    python web_app.py
    ```
 
-2. Open a web browser and go to `http://localhost:5000`.
+2. **Upload Images**
 
-3. Use the interface to upload and process individual images.
+   Navigate to `http://localhost:5000` in your web browser. Use the web interface to upload images and view the extracted location details.
 
-## Error Handling and Retries
+---
 
-The application uses the `tenacity` library for error handling and retries. API calls are retried up to 3 times with exponential backoff if they fail.
-
-## License
-
-This project is licensed under the MIT License. See the `LICENSE` file for details.
-
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-## Contact
-
-For questions, suggestions, or issues, please open an issue on the GitHub repository.
+Thank you for using the Photo Location Finder! If you encounter any issues or have suggestions, feel free to create an issue or reach out. Happy exploring! 📷🌍
