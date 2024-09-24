@@ -74,6 +74,7 @@ def upload_file():
             
             processor = ImageProcessor(
                 api_key=config['google_api_key'],
+                cred_path=config['google_application_credentials_file_path'],
                 image_dir=app.config['UPLOAD_FOLDER'],
                 prompt_for_confirmation=False
             )
