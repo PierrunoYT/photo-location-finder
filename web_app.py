@@ -80,6 +80,8 @@ def upload_file():
             )
             try:
                 result = processor.process_single_image(filepath)
+                if isinstance(result, dict) and 'error' in result:
+                    raise Exception(result['error'])
                 result['image_url'] = url_for('serve_upload', filename=filename)
                 return render_template('result.html', result=result)
             except Exception as e:

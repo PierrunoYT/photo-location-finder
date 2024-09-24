@@ -50,7 +50,14 @@ To run this project, ensure you have the following software and libraries instal
    cd photo-location-finder
    ```
 
-2. **Install Dependencies**
+2. **Set up a Virtual Environment (Optional but Recommended)**
+
+   ```bash
+   python -m venv venv
+   source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+   ```
+
+3. **Install Dependencies**
 
    Use the following command to install the required Python packages:
 
@@ -58,9 +65,12 @@ To run this project, ensure you have the following software and libraries instal
    pip install -r requirements.txt
    ```
 
-3. **Configure Google API Credentials**
+4. **Configure Google API Credentials**
 
-   Create a `config.json` file based on `config.json.template` and fill in your Google API credentials and other configurations.
+   a. Create a project in the [Google Cloud Console](https://console.cloud.google.com/).
+   b. Enable the Vision API and Maps API for your project.
+   c. Create API credentials (API key and service account key).
+   d. Create a `config.json` file based on `config.json.template` and fill in your Google API credentials and other configurations.
 
    ```json
    {
@@ -69,6 +79,22 @@ To run this project, ensure you have the following software and libraries instal
      "image_directory_path": "PATH_TO_YOUR_IMAGE_DIRECTORY"
    }
    ```
+
+5. **Set up the Upload Directory**
+
+   Create a directory named `uploads` in the project root:
+
+   ```bash
+   mkdir uploads
+   ```
+
+6. **Run the Application**
+
+   ```bash
+   python web_app.py
+   ```
+
+   The application will be available at `http://localhost:5000`.
 
 ---
 
