@@ -32,3 +32,5 @@ result.json
 
 # Ignore configuration file with sensitive information
 config.json
+# Ignore config file with sensitive information
+config.json
