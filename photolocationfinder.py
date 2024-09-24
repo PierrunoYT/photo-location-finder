@@ -14,12 +14,10 @@ from tenacity import retry, stop_after_attempt, wait_exponential
 from urllib.parse import quote
 
 class ImageProcessor:
-    def __init__(self, api_key, cred_path, image_dir, prompt_for_confirmation):
+    def __init__(self, api_key, image_dir, prompt_for_confirmation):
         self.api_key = api_key
-        self.cred_path = cred_path
         self.image_dir = image_dir
         self.prompt_for_confirmation = prompt_for_confirmation
-        os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = self.cred_path
         self.client = None
         self.session = None
         self.places_client = None
@@ -389,7 +387,6 @@ if __name__ == "__main__":
     
     processor = ImageProcessor(
         api_key=config['google_api_key'],
-        cred_path=config['google_application_credentials_file_path'],
         image_dir=config['image_directory_path'],
         prompt_for_confirmation=True
     )
